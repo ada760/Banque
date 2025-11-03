@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8cfe801b14c8ef33f0fe46c4ce724472",
+    "content-hash": "21eae9211de472186ee6491683610079",
     "packages": [
         {
             "name": "brick/math",
@@ -9229,6 +9229,70 @@
                 }
             ],
             "time": "2024-03-03T12:36:25+00:00"
+        },
+        {
+            "name": "vrana/adminer",
+            "version": "v5.4.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/vrana/adminer.git",
+                "reference": "eaad45a781a3e0d9fa04e3431c1826e81c061699"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/vrana/adminer/zipball/eaad45a781a3e0d9fa04e3431c1826e81c061699",
+                "reference": "eaad45a781a3e0d9fa04e3431c1826e81c061699",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "plugins/"
+                ],
+                "exclude-from-classmap": [
+                    "adminer/drivers/",
+                    "plugins/drivers/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0",
+                "GPL-2.0-only"
+            ],
+            "authors": [
+                {
+                    "name": "Jakub Vrána",
+                    "homepage": "https://www.vrana.cz/"
+                }
+            ],
+            "description": "Database management in a single PHP file.",
+            "homepage": "https://www.adminer.org/",
+            "keywords": [
+                "database"
+            ],
+            "support": {
+                "forum": "https://github.com/vrana/adminer/discussions",
+                "issues": "https://github.com/vrana/adminer/issues",
+                "source": "https://github.com/vrana/adminer/"
+            },
+            "funding": [
+                {
+                    "url": "https://www.paypal.com/donate/?hosted_button_id=6PK5VNUCFT3FG",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/vrana",
+                    "type": "github"
+                },
+                {
+                    "url": "https://www.patreon.com/jakubvrana",
+                    "type": "patreon"
+                }
+            ],
+            "time": "2025-09-26T15:38:02+00:00"
         }
     ],
     "aliases": [],
