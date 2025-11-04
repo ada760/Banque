@@ -26,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
     ];
+   
 
     /**
      * The attributes that should be hidden for serialization.
@@ -47,12 +48,28 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    
+
      public function client():HasOne{
         return $this->hasOne(Client::class);
     }
 
-    public function Admin():HasOne{
+    public function admin():HasOne{
         return $this->hasOne(Admin::class);
     }
+
+    public function getRoleAttribute()
+    {
+        if($this->client)
+        {
+            return 'client';
+            
+        }else if($this->admin)
+        {
+            return 'admin';
+        }
+    }
+
+
 
 }
