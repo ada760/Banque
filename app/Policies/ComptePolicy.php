@@ -13,8 +13,7 @@ class ComptePolicy
      */
     public function viewAny(User $user): bool
     {
-        // Admin can view all accounts, client can view their own accounts
-        return $user->admin || $user->client;
+        return $user->admin ;
     }
 
     /**
@@ -22,8 +21,7 @@ class ComptePolicy
      */
     public function view(User $user, Compte $compte): bool
     {
-        // Admin can view any account, client can only view their own accounts
-        if ($user->admin) {
+       if ($user->admin) {
             return true;
         }
 
@@ -32,6 +30,7 @@ class ComptePolicy
         }
 
         return false;
+    
     }
 
     /**
@@ -39,7 +38,6 @@ class ComptePolicy
      */
     public function create(User $user): bool
     {
-        // Only admins can create accounts client cant just see own accounts but he can't create account
         return $user->admin;
     }
 
@@ -48,7 +46,6 @@ class ComptePolicy
      */
     public function update(User $user, Compte $compte): bool
     {
-        // Admin can update any account, client can only update their own accounts
         if ($user->admin) {
             return true;
         }
@@ -58,6 +55,7 @@ class ComptePolicy
         }
 
         return false;
+        
     }
 
     /**
@@ -65,16 +63,8 @@ class ComptePolicy
      */
     public function delete(User $user, Compte $compte): bool
     {
-        // Admin can delete any account, client can only delete their own accounts
-        if ($user->admin) {
-            return true;
-        }
-
-        if ($user->client) {
-            return $compte->client_id === $user->client->id;
-        }
-
-        return false;
+        return $user->admin;
+       
     }
 
     /**
@@ -82,16 +72,7 @@ class ComptePolicy
      */
     public function restore(User $user, Compte $compte): bool
     {
-        // Admin can restore any account, client can only restore their own accounts
-        if ($user->admin) {
-            return true;
-        }
-
-        if ($user->client) {
-            return $compte->client_id === $user->client->id;
-        }
-
-        return false;
+        return true;
     }
 
     /**
@@ -99,15 +80,6 @@ class ComptePolicy
      */
     public function forceDelete(User $user, Compte $compte): bool
     {
-        // Admin can force delete any account, client can only force delete their own accounts
-        if ($user->admin) {
-            return true;
-        }
-
-        if ($user->client) {
-            return $compte->client_id === $user->client->id;
-        }
-
-        return false;
+        return true;
     }
 }
