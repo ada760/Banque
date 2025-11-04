@@ -11,14 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('comptes', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('titulaire');
-            // $table->string('activatedCode');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
+            $table->enum('type', ['epargne', 'cheque']);
+            $table->string('num_compte')->unique();
+            $table->string('devise');
+            $table->foreignUuid('client_id')->constrained('clients');
+            $table->enum('status', ['bloque','actif', 'ferme', 'suspendu']);
             $table->timestamps();
         });
     }
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('comptes');
     }
 };
