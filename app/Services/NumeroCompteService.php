@@ -3,14 +3,16 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Date;
+
 class NumeroCompteService
 {
     public function generate(): string
     {
-        $prefix = 'SN';
-        $year = date('Y');
-        $random = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        $prefix = 'C';
+       
+        $random = rand(0, 2);
         
-        return $prefix . $year . $random;
+        return $prefix . $random.strtotime("now");
     }
 }

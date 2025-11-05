@@ -35,14 +35,14 @@ class CompteController extends Controller
         $data = $request->validated();
 
         try {
-            $result = $this->compteService->createCompteWithClient($data);
-
+            $result = $this->compteService->createCompte($data);
+            
             return response()->json([
                 'message' => 'Compte créé avec succès.',
                 'compte' => $result['compte'],
                 'client' => $result['client'],
                 'user' => $result['user'],
-                'generated_password' => $result['generated_password'],
+                
             ], 201);
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Erreur lors de la création du compte','error' => $e->getMessage()], 500);

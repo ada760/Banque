@@ -21,6 +21,8 @@ Route::post('/login', [AuthController::class, 'login']);
 
 
 // Account routes (protected by authentication and role middleware)
-Route::middleware(['auth:api'])->group(function () {
-    Route::apiResource('comptes', CompteController::class);
-});
+// Route::middleware(['auth:api'])->group(function () {
+    // Route::apiResource('comptes', CompteController::class);
+// });
+
+Route::post('/compte',[CompteController::class,'store']);

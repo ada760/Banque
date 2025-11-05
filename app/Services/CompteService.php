@@ -4,7 +4,9 @@
 namespace App\Services;
 
 use App\Models\Compte;
+use Error;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CompteService
 {
@@ -17,26 +19,60 @@ class CompteService
         $this->clientService = $clientService;
     }
 
-    public function createCompteWithClient(array $data): array
+    // public function createCompteWithClient(array $data): array
+    // {
+    //     return DB::transaction(function () use ($data) {
+    //         [$user, $generatedPassword] = $this->userService->findOrCreate($data);
+    //         $client = $this->clientService->findOrCreateClient($data, $user);
+
+    //         $compte = Compte::create([
+    //             'type' => $data['type'],
+    //             'num_compte' => $data['num_compte'],
+    //             'devise' => $data['devise'],
+    //             'status' => $data['status'],
+    //             'client_id' => $client->id,
+    //         ]);
+
+    //         return [
+    //             'compte' => $compte,
+    //             'client' => $client,
+    //             'user' => $user,
+    //             'generated_password' => $generatedPassword,
+    //         ];
+    //     });
+    // }
+
+    public function createCompte(array $data)
     {
-        return DB::transaction(function () use ($data) {
-            [$user, $generatedPassword] = $this->userService->findOrCreate($data);
-            $client = $this->clientService->findOrCreateClient($data, $user);
+        try {
+            
+            $result =  DB::transaction(function() use ($data) {
+                $user = $this->userService->create($data);
+                $client = $this->clientService->createClient($data,$user);
 
-            $compte = Compte::create([
-                'type' => $data['type'],
-                'num_compte' => $data['num_compte'],
-                'devise' => $data['devise'],
-                'status' => $data['status'],
-                'client_id' => $client->id,
-            ]);
+                $compte = Compte::create([
+                    'client_id'=>$client->id,
+                    'type' => $data['type'],
+                    'num_compte' => $data['num_compte'],
+                    'devise' => $data['devise'],
+                    'status' => 'actif',
 
-            return [
+                ]);
+
+                return [
                 'compte' => $compte,
                 'client' => $client,
                 'user' => $user,
-                'generated_password' => $generatedPassword,
             ];
+
+            
         });
+        return $result;
+        } catch (\Exception $e) {
+
+           Log::error('Erreur lors de la transaction : ' . $e->getMessage(), ['data' => $data]);
+            throw $e;
+        }
+       
     }
 }

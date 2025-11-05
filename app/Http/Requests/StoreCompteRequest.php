@@ -22,17 +22,16 @@ class StoreCompteRequest extends FormRequest
      public function rules(): array
     {
         return [
-            'type' => 'required|string|in:epargne,cheque',
-            'num_compte' => 'required|string|unique',
-            'devise' => 'required|string',
-            'status' => 'required|string|in:bloque,actif,ferme,suspendu',
-            'email' => 'required|email',
-            'telephone'=>'required|phone|max:9',
-            'addresse'=>'required|string',
-            'cni'=>'required|string|min:13,max:14',
-           
-      
-        ];
+    'type' => 'required|string|in:epargne,cheque',
+    'num_compte' => 'required|string|unique:comptes,num_compte',
+    'devise' => 'required|string',
+    'status' => 'required|string|in:bloque,actif,ferme,suspendu',
+    'email' => 'nullable|email',
+    'telephone' => 'nullable|string|max:9', 
+    'adresse' => 'nullable|string', 
+    'cni' => 'nullable|string|min:13|max:14',
+    'titulaire'=>'nullable|string'
+];
     }
 
     /**

@@ -13,6 +13,11 @@ class CompteObserver
     {
         $this->numeroCompteService = $numeroCompteService;
     }
+
+    public function creating(Compte $compte)
+    {
+       $compte->num_compte =  $this->numeroCompteService->generate();
+    }
    
     /**
      * Handle the Compte "created" event.

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class UserService
@@ -11,20 +12,34 @@ class UserService
      * Retourne [User $user, ?string $generatedPassword]
      * Crée un user si l'email n'existe pas.
      */
-    public function findOrCreate(array $data): array
+    // public function findOrCreate(array $data): array
+    // {
+    //     $user = User::where('email', $data['email'])->first();
+    //     $generatedPassword = null;
+
+    //     if (! $user) {
+    //         $generatedPassword = Str::random(10);
+    //         $user = User::create([
+    //             'name' => $data['name'] ?? explode('@', $data['email'])[0],
+    //             'email' => $data['email'],
+    //             'password' => bcrypt($generatedPassword),
+    //         ]);
+    //     }
+
+    //     return [$user, $generatedPassword];
+    // }
+
+
+    public function create(array $data):User
     {
-        $user = User::where('email', $data['email'])->first();
-        $generatedPassword = null;
 
-        if (! $user) {
-            $generatedPassword = Str::random(10);
-            $user = User::create([
-                'name' => $data['name'] ?? explode('@', $data['email'])[0],
+        $generatedPassword = Str::random(10);
+         $user = User::create([
+                'titulaire' => $data['titulaire'],
                 'email' => $data['email'],
-                'password' => bcrypt($generatedPassword),
+                'password' => Hash::make($generatedPassword),
             ]);
-        }
 
-        return [$user, $generatedPassword];
+            return $user;
     }
 }
