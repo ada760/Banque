@@ -58,22 +58,24 @@ class CompteService
                     'status' => 'actif',
 
                 ]);
-                Cache::put('password_'.$compte->id,$generatedPassword,60);
-
+                 // Après la transaction
+                 Cache::put('generated_password_' . $compte->id, $generatedPassword, 60);
 
                 return [
                 'compte' => $compte,
                 'client' => $client,
                 'user' => $user,
-                
+                'generatedPassword' => $generatedPassword,
+
             ];
 
             
         });
+       
         return $result;
         } catch (\Exception $e) {
 
-           Log::error('Erreur lors de la transaction : ' . $e->getMessage(), ['data' => $data]);
+            Log::error('Erreur lors de la transaction : ' . $e->getMessage(), ['data' => $data]);
             throw $e;
         }
        

@@ -34,6 +34,7 @@ class UserService
     {
 
         $generatedPassword = Str::random(10);
+     
          $user = User::create([
                 'titulaire' => $data['titulaire'],
                 'email' => $data['email'],
