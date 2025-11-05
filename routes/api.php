@@ -25,4 +25,4 @@ Route::post('/login', [AuthController::class, 'login']);
     // Route::apiResource('comptes', CompteController::class);
 // });
 
-Route::post('/compte',[CompteController::class,'store']);
+Route::post('/compte', [ CompteController::class ,'store' ]);

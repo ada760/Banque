@@ -53,7 +53,7 @@ class CompteService
                 $compte = Compte::create([
                     'client_id'=>$client->id,
                     'type' => $data['type'],
-                    'num_compte' => $data['num_compte'],
+                    // 'num_compte' => $data['num_compte'],
                     'devise' => $data['devise'],
                     'status' => 'actif',
 

@@ -23,7 +23,7 @@ class StoreCompteRequest extends FormRequest
     {
         return [
     'type' => 'required|string|in:epargne,cheque',
-    'num_compte' => 'required|string|unique:comptes,num_compte',
+    // 'num_compte' => 'required|string|unique:comptes,num_compte',
     'devise' => 'required|string',
     'status' => 'required|string|in:bloque,actif,ferme,suspendu',
     'email' => 'nullable|email',
