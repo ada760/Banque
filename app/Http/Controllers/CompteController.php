@@ -51,16 +51,14 @@ class CompteController extends Controller
 
 public function store(StoreCompteRequest $request)
 {
-    try 
+    try
     {
-        Log::info('Début création compte', ['data' => $request->all()]);
-        
+
+        $this->authorize('create', Compte::class);
         $data = $request->validated();
-        Log::info('Données validées', ['validated_data' => $data]);
-        
+
         $result = $this->compteService->createCompte($data);
-        Log::info('Résultat création', ['result' => $result]);
-        
+
         if (!$result) {
             throw new \Exception('Aucun résultat retourné par le service');
         }
@@ -72,14 +70,10 @@ public function store(StoreCompteRequest $request)
             'client' => $result['client'],
             'user' => $result['user'],
         ], 201, [], JSON_PRETTY_PRINT);
-    } 
-    catch (\Throwable $e) 
+    }
+    catch (\Throwable $e)
     {
-        Log::error('Erreur création compte', [
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        
+
         return response()->json([
             'success' => false,
             'message' => 'Erreur lors de la création du compte',

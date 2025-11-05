@@ -15,12 +15,16 @@ class CompteCreated
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public Compte $compte;
+    public string $password;
+
     /**
      * Create a new event instance.
      */
-    public function __construct(Compte $compte)
+    public function __construct(Compte $compte, string $password)
     {
-        
+        $this->compte = $compte;
+        $this->password = $password;
     }
 
     /**

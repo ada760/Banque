@@ -24,5 +24,6 @@ Route::post('/login', [AuthController::class, 'login']);
 // Route::middleware(['auth:api'])->group(function () {
     // Route::apiResource('comptes', CompteController::class);
 // });
-
+Route::middleware(['auth:api'])->group(function () {
 Route::post('/compte', [ CompteController::class ,'store' ]);
+});

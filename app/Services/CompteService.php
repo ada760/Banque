@@ -5,6 +5,7 @@ namespace App\Services;
 
 use App\Models\Compte;
 use Error;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -47,9 +48,8 @@ class CompteService
         try {
             
             $result =  DB::transaction(function() use ($data) {
-                $user = $this->userService->create($data);
+                [$user,$generatedPassword] = $this->userService->create($data);
                 $client = $this->clientService->createClient($data,$user);
-
                 $compte = Compte::create([
                     'client_id'=>$client->id,
                     'type' => $data['type'],
@@ -58,11 +58,14 @@ class CompteService
                     'status' => 'actif',
 
                 ]);
+                Cache::put('password_'.$compte->id,$generatedPassword,60);
+
 
                 return [
                 'compte' => $compte,
                 'client' => $client,
                 'user' => $user,
+                
             ];
 
             

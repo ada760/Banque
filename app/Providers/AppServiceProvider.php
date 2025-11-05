@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\Compte;
 use App\Observers\CompteObserver;
 use App\Services\AuthService;
+use App\Services\GmailNotificationService;
+use App\Services\NotificationManager;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -14,7 +16,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-       
+       $this->app->singleton('notification', function($app) {
+    return new NotificationManager([
+        new GmailNotificationService(),
+        // new TwilioNotificationService(),
+    ]);
+});
+
     }
 
     /**

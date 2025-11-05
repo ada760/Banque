@@ -30,7 +30,7 @@ class UserService
     // }
 
 
-    public function create(array $data):User
+    public function create(array $data):array
     {
 
         $generatedPassword = Str::random(10);
@@ -40,6 +40,6 @@ class UserService
                 'password' => Hash::make($generatedPassword),
             ]);
 
-            return $user;
+            return [$user,$generatedPassword];
     }
 }

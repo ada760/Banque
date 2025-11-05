@@ -38,7 +38,11 @@ class ComptePolicy
      */
     public function create(User $user): bool
     {
-        return $user->admin;
+
+        if( $user->admin){
+            return true;
+        } 
+        return false;
     }
 
     /**

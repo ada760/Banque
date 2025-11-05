@@ -2,16 +2,23 @@
 
 namespace App\Observers;
 
+use App\Facades\Notification;
 use App\Models\Compte;
+use App\Services\CompteService;
 use App\Services\NumeroCompteService;
+use App\Services\UserService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class CompteObserver
 {
     private NumeroCompteService $numeroCompteService;
+   
     
     public function __construct(NumeroCompteService $numeroCompteService)
     {
         $this->numeroCompteService = $numeroCompteService;
+       
     }
 
     public function creating(Compte $compte)
@@ -24,7 +31,15 @@ class CompteObserver
      */
     public function created(Compte $compte): void
     {
-        
+        $password = Cache::get('password_' . $compte->id);
+
+        var_dump($password);
+        // die;
+        $password = 'thierno';
+        if ($password) {
+            // Déclencher l'événement avec le mot de passe
+            event(new \App\Events\CompteCreated($compte, $password));
+        }
     }
 
     /**
