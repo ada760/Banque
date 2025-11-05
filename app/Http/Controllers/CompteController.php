@@ -30,7 +30,7 @@ class CompteController extends Controller
      */
     public function store(StoreCompteRequest $request)
     {
-        $this->authorize('create', Compte::class);
+        // $this->authorize('create', Compte::class);
 
         $data = $request->validated();
 
