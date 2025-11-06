@@ -7,24 +7,50 @@ use App\Models\Compte;
 use App\Models\User;
 use App\Services\CompteService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class CompteController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+
 
     private CompteService $compteService;
 
     public function __construct(CompteService $compteService)
     {
         $this->compteService = $compteService;
+    }
+
+    /**
+     * Afficher la liste des comptes (avec filtres)
+     */
+    public function index(Request $request): JsonResponse
+    {
+        // Récupère uniquement les filtres envoyés par l'utilisateur
+        $filters = $request->only([
+            'status',
+            'type',
+            'solde_min',
+            'solde_max',
+            'date_debut',
+            'date_fin',
+        ]);
+
+        // Valeur par défaut si 'status' n'est pas défini
+        $filters['status'] = $filters['status'] ?? 'actif';
+
+        // Pagination
+        $page = (int) $request->get('page', 1);
+        $limit = (int) $request->get('limit', 10);
+
+        // Délégation au service
+        $comptes = $this->compteService->list($filters, $page, $limit);
+
+        return response()->json([
+            'success' => true,
+            'data' => $comptes,
+        ]);
     }
 
     /**

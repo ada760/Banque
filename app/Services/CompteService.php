@@ -4,17 +4,24 @@ namespace App\Services;
 
 use App\Models\Compte;
 use App\Events\CompteCreated;
+use App\Repositories\CompteRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class CompteService
+class CompteService extends BaseService
 {
     private UserService $userService;
     private ClientService $clientService;
 
-    public function __construct(UserService $userService, ClientService $clientService)
-    {
+
+
+    public function __construct(
+        CompteRepository $repository,
+        UserService $userService,
+        ClientService $clientService
+    ) {
+        parent::__construct($repository); 
         $this->userService = $userService;
         $this->clientService = $clientService;
     }
