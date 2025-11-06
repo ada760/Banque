@@ -27,6 +27,16 @@ class CompteController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        try {
+            $this->authorize('viewAny', Compte::class);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Accès non autorisé',
+                'error' => 'Vous n\'avez pas les permissions nécessaires pour voir les comptes'
+            ], 403);
+        }
+
         // Récupère uniquement les filtres envoyés par l'utilisateur
         $filters = $request->only([
             'status',
@@ -39,6 +49,13 @@ class CompteController extends Controller
 
         // Valeur par défaut si 'status' n'est pas défini
         $filters['status'] = $filters['status'] ?? 'actif';
+
+        $user = auth()->user();
+
+        // Si l'utilisateur est un client, ajouter le filtre client_id APRÈS avoir récupéré les autres filtres
+        if ($user && $user->client) {
+            $filters['client_id'] = $user->client->id;
+        }
 
         // Pagination
         $page = (int) $request->get('page', 1);

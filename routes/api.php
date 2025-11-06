@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-Route::get('/comptes', [CompteController::class, 'index']);
 // Authentication routes
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -25,5 +24,7 @@ Route::post('/login', [AuthController::class, 'login']);
     // Route::apiResource('comptes', CompteController::class);
 // });
 Route::middleware(['auth:api'])->group(function () {
-Route::post('/compte', [ CompteController::class ,'store' ]);
+Route::post('/comptes', [ CompteController::class ,'store' ]);
+Route::get('/comptes', [CompteController::class, 'index']);
+
 });

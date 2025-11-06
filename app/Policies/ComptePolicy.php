@@ -13,7 +13,7 @@ class ComptePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->admin;
+        return (bool)$user->admin  || (bool)$user->client ;
     }
 
     /**
