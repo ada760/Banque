@@ -9,7 +9,6 @@ use App\Services\CompteService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class CompteController extends Controller
 {
