@@ -8,6 +8,7 @@ use App\Models\User;
 
 class ClientService
 {
+
     /**
      * Retourne le client existant (par cni ou telephone) ou le crée.
      * Associe le user si nécessaire.
@@ -35,14 +36,24 @@ class ClientService
     //     return $client;
     // }
 
-    public function createClient(array $data,User $user):Client|null
+    public function createClient(array $data, User $user): Client|null
     {
 
         return Client::create([
-                'user_id' => $user->id,
-                'cni' => $data['cni'],
-                'telephone' => $data['telephone'],
-                'adresse' => $data['adresse'],
-            ]);       
+            'user_id' => $user->id,
+            'cni' => $data['cni'],
+            'telephone' => $data['telephone'],
+            'adresse' => $data['adresse'],
+        ]);
+    }
+
+    /**
+     * Trouve un client existant par CNI ou téléphone
+     */
+    public function findClientByCniOrPhone(string $cni, string $telephone): ?Client
+    {
+        return Client::where('cni', $cni)
+            ->orWhere('telephone', $telephone)
+            ->first();
     }
 }

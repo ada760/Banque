@@ -30,17 +30,25 @@ class UserService
     // }
 
 
-    public function create(array $data):array
+    public function create(array $data): array
     {
 
         $generatedPassword = Str::random(10);
-     
-         $user = User::create([
-                'titulaire' => $data['titulaire'],
-                'email' => $data['email'],
-                'password' => Hash::make($generatedPassword),
-            ]);
 
-            return [$user,$generatedPassword];
+        $user = User::create([
+            'titulaire' => $data['titulaire'],
+            'email' => $data['email'],
+            'password' => Hash::make($generatedPassword),
+        ]);
+
+        return [$user, $generatedPassword];
+    }
+
+    /**
+     * Trouve un utilisateur par email
+     */
+    public function findUserByEmail(string $email): ?User
+    {
+        return User::where('email', $email)->first();
     }
 }

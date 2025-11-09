@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'mysql'),
+    'default' => env('DB_CONNECTION', 'pgsql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -91,6 +91,18 @@ return [
             'prefix_indexes' => true,
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
+        ],
+
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'host' => env('DB_HOST_MONGODB', '127.0.0.1'),
+            'port' => env('DB_PORT_MONGODB', 27017),
+            'database' => env('DB_DATABASE_MONGODB', 'ompay'),
+            'username' => env('DB_USERNAME_MONGODB'),
+            'password' => env('DB_PASSWORD_MONGODB'),
+            'options' => [
+                'database' => env('DB_DATABASE_MONGODB', 'ompay'),
+            ],
         ],
 
     ],

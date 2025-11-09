@@ -13,7 +13,7 @@ class ComptePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->admin ;
+        return (bool)$user->admin  || (bool)$user->client ;
     }
 
     /**
@@ -21,7 +21,7 @@ class ComptePolicy
      */
     public function view(User $user, Compte $compte): bool
     {
-       if ($user->admin) {
+        if ($user->admin) {
             return true;
         }
 
@@ -30,7 +30,6 @@ class ComptePolicy
         }
 
         return false;
-    
     }
 
     /**
@@ -39,9 +38,9 @@ class ComptePolicy
     public function create(User $user): bool
     {
 
-        if( $user->admin){
+        if ($user->admin) {
             return true;
-        } 
+        }
         return false;
     }
 
@@ -59,7 +58,6 @@ class ComptePolicy
         }
 
         return false;
-        
     }
 
     /**
@@ -68,7 +66,6 @@ class ComptePolicy
     public function delete(User $user, Compte $compte): bool
     {
         return $user->admin;
-       
     }
 
     /**

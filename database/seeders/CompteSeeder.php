@@ -13,6 +13,13 @@ class CompteSeeder extends Seeder
      */
     public function run(): void
     {
-        Compte::factory()->count(10)->create();
+        // Créer un compte pour chaque client existant
+        $clients = \App\Models\Client::all();
+
+        foreach ($clients as $client) {
+            Compte::factory()->createQuietly([
+                'client_id' => $client->id,
+            ]);
+        }
     }
 }

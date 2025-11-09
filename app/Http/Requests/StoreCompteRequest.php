@@ -20,19 +20,19 @@ class StoreCompteRequest extends FormRequest
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
      public function rules(): array
-    {
-        return [
-    'type' => 'required|string|in:epargne,cheque',
-    // 'num_compte' => 'required|string|unique:comptes,num_compte',
-    'devise' => 'required|string',
-    'status' => 'required|string|in:bloque,actif,ferme,suspendu',
-    'email' => 'nullable|email',
-    'telephone' => 'nullable|string|max:9', 
-    'adresse' => 'nullable|string', 
-    'cni' => 'nullable|string|min:13|max:14',
-    'titulaire'=>'nullable|string'
-];
-    }
+     {
+         return [
+     'type' => 'required|string|in:epargne,cheque',
+     // 'num_compte' => 'required|string|unique:comptes,num_compte',
+     'devise' => 'required|string',
+     'status' => 'required|string|in:bloque,actif,ferme,suspendu',
+     'email' => 'nullable|email',
+     'telephone' => 'nullable|string|max:9',
+     'adresse' => 'nullable|string',
+     'cni' => 'nullable|string|min:13|max:14',
+     'titulaire'=>'nullable|string'
+ ];
+     }
 
     /**
      * Get custom messages for validator errors.

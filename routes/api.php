@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
 // Authentication routes
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -25,5 +24,22 @@ Route::post('/login', [AuthController::class, 'login']);
     // Route::apiResource('comptes', CompteController::class);
 // });
 Route::middleware(['auth:api'])->group(function () {
-Route::post('/compte', [ CompteController::class ,'store' ]);
+    // Routes comptes bancaires (PostgreSQL) - Admin seulement
+    Route::middleware(['can:create,App\Models\Compte'])->group(function () {
+        Route::post('/comptes', [ CompteController::class ,'store' ]);
+    });
+    Route::middleware(['can:viewAny,App\Models\Compte'])->group(function () {
+        Route::get('/comptes', [CompteController::class, 'index']);
+    });
+
+    // Routes OM Pay (MongoDB) - Clients avec compte actif
+    Route::prefix('ompay')->group(function () {
+        Route::middleware(['can:viewOwnTransactions,App\Models\OmPay\Transaction'])->group(function () {
+            Route::get('/transactions', [\App\Http\Controllers\OmPay\TransactionController::class, 'index']);
+            Route::get('/transactions/stats', [\App\Http\Controllers\OmPay\TransactionController::class, 'stats']);
+        });
+        Route::middleware(['can:createTransaction,App\Models\OmPay\Transaction'])->group(function () {
+            Route::post('/transactions', [\App\Http\Controllers\OmPay\TransactionController::class, 'store']);
+        });
+    });
 });
