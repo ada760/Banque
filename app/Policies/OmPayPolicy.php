@@ -22,7 +22,7 @@ class OmPayPolicy
      */
     public function viewOwnTransactions(User $user): bool
     {
-        return $user->client; // Tout client peut voir ses transactions
+        return $user->client !== null; // Tout client peut voir ses transactions
     }
 
     /**
