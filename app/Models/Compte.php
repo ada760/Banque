@@ -12,12 +12,13 @@ class Compte extends Model
     use HasFactory, HasUuids;
 
       protected $fillable = [
-        'id',          
+        'id',
         'num_compte',
         'devise',
         'status',
         'client_id',
-        'type'   
+        'type',
+        'solde'
     ];
 
    
@@ -28,5 +29,11 @@ class Compte extends Model
 
     protected $appends = [];
 
+    /**
+     * Les attributs qui doivent être castés
+     */
+    protected $casts = [
+        'solde' => 'decimal:2',
+    ];
 
 }

@@ -17,14 +17,14 @@ class CompteFactory extends Factory
      */
     public function definition(): array
     {
-
          return [
             'id'=>$this->faker->uuid(),
-            'num_compte' => $this->faker->unique()->numerify('C00######'),
-            'status'     => $this->faker->randomElement(['bloque','actif', 'ferme', 'suspendu']),
+            'num_compte' => $this->faker->unique()->numerify('C##########'), // 11 chiffres pour éviter les conflits
+            'status'     => $this->faker->randomElement(['actif', 'actif', 'actif', 'bloque']), // Plus de comptes actifs
             'type'       => $this->faker->randomElement(['cheque','epargne']),
-            'devise'     => $this->faker->randomElement(['XOF','EUR','USD']),
-            'client_id'  => Client::factory(), 
+            'devise'     => $this->faker->randomElement(['XOF','XOF','XOF','EUR','USD']), // Plus de XOF
+            'solde'      => $this->faker->numberBetween(5000, 50000), // Solde entre 5k et 50k
+            'client_id'  => Client::factory(),
         ];
     }
 }

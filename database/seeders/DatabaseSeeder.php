@@ -12,11 +12,29 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Créer l'utilisateur admin
+        $user = \App\Models\User::create([
+            'id' => fake()->uuid(),
+            'titulaire' => 'Administrateur Principal',
+            'email' => 'admin@gmail.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'email_verified_at' => now(),
+        ]);
+
+        // Créer l'admin associé
+        \App\Models\Admin::create([
+            'id' => fake()->uuid(),
+            'user_id' => $user->id,
+        ]);
+
+        // Créer 75 clients sénégalais réalistes
         $this->call([
-            UserSeeder::class,
             ClientSeeder::class,
-            AdminSeeder::class,
-            CompteSeeder::class
+        ]);
+
+        // Créer les comptes associés
+        $this->call([
+            CompteSeeder::class,
         ]);
     }
 }

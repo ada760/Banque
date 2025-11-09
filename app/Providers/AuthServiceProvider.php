@@ -5,7 +5,9 @@ namespace App\Providers;
 // use Illuminate\Support\Facades\Gate;
 
 use App\Models\Compte;
+use App\Models\OmPay\Transaction;
 use App\Policies\ComptePolicy;
+use App\Policies\OmPayPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -17,6 +19,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Compte::class => ComptePolicy::class,
+        Transaction::class => OmPayPolicy::class,
     ];
 
     /**

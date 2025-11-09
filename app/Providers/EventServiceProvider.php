@@ -21,6 +21,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\CompteCreated::class => [
             \App\Listeners\SendWelcomeEmail::class,
         ],
+        \App\Events\OmPay\TransactionCreated::class => [
+            \App\Listeners\OmPay\TransactionLogger::class,
+        ],
     ];
 
     /**
