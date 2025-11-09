@@ -5,14 +5,19 @@ WORKDIR /app
 
 COPY . .
 
-RUN composer require "zircote/swagger-php:^4.0" --no-scripts --no-interaction --prefer-dist \
-    && composer install --no-scripts --optimize-autoloader --no-interaction --prefer-dist
+RUN composer install --no-scripts --optimize-autoloader --no-interaction --prefer-dist
 
 # Étape 2: Image finale
 FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache postgresql-dev \
     && docker-php-ext-install pdo pdo_pgsql
+
+# Installer l'extension MongoDB
+RUN apk add --no-cache autoconf g++ make \
+    && pecl install mongodb \
+    && docker-php-ext-enable mongodb \
+    && apk del autoconf g++ make
 
 RUN addgroup -g 1000 laravel && adduser -G laravel -g laravel -s /bin/sh -D laravel
 
