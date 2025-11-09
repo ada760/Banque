@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN composer install --no-scripts --optimize-autoloader --no-interaction --prefer-dist
+RUN composer install --no-scripts --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-req=ext-mongodb
 
 # Étape 2: Image finale
 FROM php:8.3-fpm-alpine
