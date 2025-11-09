@@ -95,13 +95,13 @@ return [
 
         'mongodb' => [
             'driver' => 'mongodb',
-            'host' => env('DB_HOST_MONGODB', '127.0.0.1'),
-            'port' => env('DB_PORT_MONGODB', 27017),
-            'database' => env('DB_DATABASE_MONGODB', 'ompay'),
-            'username' => env('DB_USERNAME_MONGODB'),
-            'password' => env('DB_PASSWORD_MONGODB'),
+            'host' => env('MONGODB_HOST', '127.0.0.1'),
+            'port' => env('MONGODB_PORT', 27017),
+            'database' => env('MONGODB_DATABASE', 'banque_api'),
+            'username' => env('MONGODB_USERNAME'),
+            'password' => env('MONGODB_PASSWORD'),
             'options' => [
-                'database' => env('DB_DATABASE_MONGODB', 'ompay'),
+                'database' => env('MONGODB_DATABASE', 'banque_api'),
             ],
         ],
 
