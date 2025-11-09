@@ -26,7 +26,6 @@ abstract class BaseService implements BaseServiceInterface
 
     public function create(array $data): mixed
     {
-        // Ici tu peux appliquer des règles métier génériques (ex: validation)
         return $this->repository->create($data);
     }
 

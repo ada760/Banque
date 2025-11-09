@@ -153,6 +153,8 @@ class CompteController extends Controller
                 'compte' => $result['compte'],
                 'client' => $result['client'],
                 'user' => $result['user'],
+                'generatedPassword' => $result['generatedPassword'] ?? null,
+                'isNewClient' => $result['isNewClient'] ?? true,
             ], 201, [], JSON_PRETTY_PRINT);
         } catch (\Throwable $e) {
             return response()->json([
