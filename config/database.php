@@ -98,8 +98,8 @@ return [
             'dsn' => env('MONGODB_URI'),
             'database' => env('MONGODB_DATABASE', 'banque_api'),
             'options' => [
-                'tls' => true,
-                'tlsAllowInvalidCertificates' => true, // Temporaire pour tests
+                'tls' => false,
+                // 'tlsAllowInvalidCertificates' => true, // Temporaire pour tests
             ],
         ],
 
