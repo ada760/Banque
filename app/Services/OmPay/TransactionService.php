@@ -74,7 +74,7 @@ class TransactionService extends BaseService
     {
         $rules = [
             'user_id' => 'required|integer',
-            'type' => 'required|in:transfer,payment,recharge',
+            'type' => 'required|in:transfer,payment',
             'amount' => 'required|numeric|min:100',
         ];
 
@@ -149,7 +149,6 @@ class TransactionService extends BaseService
         $feePercentage = match($type) {
             'transfer' => 0.005, // 0.5%
             'payment' => 0.01,   // 1%
-            'recharge' => 0.0,   // Gratuit
             default => 0.0
         };
 
@@ -183,33 +182,19 @@ class TransactionService extends BaseService
             return;
         }
 
-        // Logique différente selon le type de transaction
-        if ($transaction->type === 'recharge') {
-            // Pour les recharges : AJOUTER au solde (pas de frais)
-            $compte->increment('solde', $transaction->amount);
+        // Pour transferts et paiements : DÉBITER du solde (montant + frais)
+        $totalDebit = $transaction->amount + $transaction->fee;
+        $compte->decrement('solde', $totalDebit);
 
-            Log::info('Solde rechargé après transaction', [
-                'transaction_id' => $transaction->id,
-                'user_id' => $transaction->user_id,
-                'amount' => $transaction->amount,
-                'type' => 'recharge',
-                'new_balance' => $compte->fresh()->solde
-            ]);
-        } else {
-            // Pour transferts et paiements : DÉBITER du solde (montant + frais)
-            $totalDebit = $transaction->amount + $transaction->fee;
-            $compte->decrement('solde', $totalDebit);
-
-            Log::info('Solde débité après transaction', [
-                'transaction_id' => $transaction->id,
-                'user_id' => $transaction->user_id,
-                'amount' => $transaction->amount,
-                'fee' => $transaction->fee,
-                'total_debit' => $totalDebit,
-                'type' => $transaction->type,
-                'new_balance' => $compte->fresh()->solde
-            ]);
-        }
+        Log::info('Solde débité après transaction', [
+            'transaction_id' => $transaction->id,
+            'user_id' => $transaction->user_id,
+            'amount' => $transaction->amount,
+            'fee' => $transaction->fee,
+            'total_debit' => $totalDebit,
+            'type' => $transaction->type,
+            'new_balance' => $compte->fresh()->solde
+        ]);
 
         // Pour les transferts, créditer le destinataire
         if ($transaction->type === 'transfer' && $transaction->recipient_phone) {

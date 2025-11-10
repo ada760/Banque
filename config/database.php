@@ -75,7 +75,7 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'require',
+            'sslmode' => env('DB_SSLMODE', 'require'),
         ],
 
         'sqlsrv' => [
@@ -95,11 +95,13 @@ return [
 
         'mongodb' => [
             'driver' => 'mongodb',
-            'dsn' => env('MONGODB_URI'),
-            'database' => env('MONGODB_DATABASE', 'banque_api'),
+            'host' => env('DB_HOST_MONGODB', '127.0.0.1'),
+            'port' => env('DB_PORT_MONGODB', 27017),
+            'database' => env('DB_DATABASE_MONGODB', 'ompay'),
+            'username' => env('DB_USERNAME_MONGODB'),
+            'password' => env('DB_PASSWORD_MONGODB'),
             'options' => [
                 'tls' => false,
-                // 'tlsAllowInvalidCertificates' => true, // Temporaire pour tests
             ],
         ],
 

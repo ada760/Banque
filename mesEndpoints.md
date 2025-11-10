@@ -1,4 +1,5 @@
 # API OM Pay - Documentation des Endpoints
+genration code qr le code qr c'est pour un compte
 
 ## Base URL
 ```

@@ -18,6 +18,16 @@ use Illuminate\Support\Facades\Route;
 // Authentication routes
 Route::post('/login', [AuthController::class, 'login']);
 
+// OM Pay Authentication routes (sans middleware auth)
+Route::prefix('auth')->group(function () {
+    Route::post('/request-otp', [\App\Http\Controllers\OmAuthController::class, 'requestOtp']);
+    Route::post('/verify-otp', [\App\Http\Controllers\OmAuthController::class, 'verifyOtp']);
+    Route::post('/set-secret-code', [\App\Http\Controllers\OmAuthController::class, 'setSecretCode']);
+    Route::post('/login', [\App\Http\Controllers\OmAuthController::class, 'login']);
+    Route::post('/logout', [\App\Http\Controllers\OmAuthController::class, 'logout'])->middleware('auth:api');
+    Route::get('/check', [\App\Http\Controllers\OmAuthController::class, 'checkAuth'])->middleware('auth:api');
+});
+
 
 // Account routes (protected by authentication and role middleware)
 // Route::middleware(['auth:api'])->group(function () {
@@ -43,3 +53,7 @@ Route::middleware(['auth:api'])->group(function () {
         });
     });
 });
+
+// Swagger Documentation routes
+Route::get('/documentation', [App\Http\Controllers\SwaggerController::class, 'index']);
+Route::get('/documentation.json', [App\Http\Controllers\SwaggerController::class, 'json']);

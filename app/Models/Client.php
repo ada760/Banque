@@ -15,11 +15,20 @@ class Client extends Model
     use HasFactory, HasUuids; 
 
     protected $fillable = [
-        'id',         
-        'telephone',   
-        'cni',       
-        'adresse', 
-        'user_id'   
+        'id',
+        'telephone',
+        'cni',
+        'adresse',
+        'user_id',
+        'code_secret_om',
+        'otp_attempts',
+        'last_otp_request',
+        'blocked_until'
+    ];
+
+    protected $casts = [
+        'last_otp_request' => 'datetime',
+        'blocked_until' => 'datetime',
     ];
 
     public function user():BelongsTo{
