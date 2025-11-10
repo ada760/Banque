@@ -219,8 +219,20 @@ class OtpService
         } catch (\Exception $e) {
             Log::error('Erreur envoi email OTP (sync)', [
                 'email' => $email,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
+
+            // En production, si l'email échoue, on peut temporairement logger l'OTP
+            // pour permettre les tests (À SUPPRIMER EN PRODUCTION RÉELLE)
+            if (app()->environment('production')) {
+                Log::warning('OTP PRODUCTION (TEMPORAIRE)', [
+                    'email' => $email,
+                    'otp' => $otp,
+                    'message' => 'Vérifiez les logs pour récupérer l\'OTP'
+                ]);
+            }
+
             throw new \Exception('Erreur lors de l\'envoi du code par email');
         }
     }
