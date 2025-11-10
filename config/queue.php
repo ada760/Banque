@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'sync'),
+    'default' => env('QUEUE_CONNECTION', env('APP_ENV') === 'production' ? 'sync' : 'redis'),
 
     /*
     |--------------------------------------------------------------------------
