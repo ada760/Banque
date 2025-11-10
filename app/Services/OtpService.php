@@ -48,8 +48,12 @@ class OtpService
             'otp_attempts' => 0 // Reset attempts
         ]);
 
-        // Envoyer OTP par email
-        $this->sendOtpEmail($client->user->email, $otp);
+        // Envoyer OTP par email (synchrone en production, asynchrone en développement)
+        if (app()->environment('production')) {
+            $this->sendOtpEmailSync($client->user->email, $otp);
+        } else {
+            $this->sendOtpEmail($client->user->email, $otp);
+        }
 
         Log::info('OTP demandé', [
             'phone' => $phone,
@@ -181,7 +185,7 @@ class OtpService
     }
 
     /**
-     * Envoie l'OTP par email
+     * Envoie l'OTP par email (asynchrone avec queue)
      */
     private function sendOtpEmail(string $email, string $otp): void
     {
@@ -192,6 +196,25 @@ class OtpService
             });
         } catch (\Exception $e) {
             Log::error('Erreur envoi email OTP', [
+                'email' => $email,
+                'error' => $e->getMessage()
+            ]);
+            throw new \Exception('Erreur lors de l\'envoi du code par email');
+        }
+    }
+
+    /**
+     * Envoie l'OTP par email (synchrone pour production)
+     */
+    private function sendOtpEmailSync(string $email, string $otp): void
+    {
+        try {
+            Mail::raw("Votre code de vérification OM Pay est : {$otp}. Ce code expire dans 6 minutes.", function ($message) use ($email) {
+                $message->to($email)
+                        ->subject('Code de vérification OM Pay');
+            })->send(); // Force l'envoi synchrone
+        } catch (\Exception $e) {
+            Log::error('Erreur envoi email OTP (sync)', [
                 'email' => $email,
                 'error' => $e->getMessage()
             ]);
