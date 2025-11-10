@@ -209,10 +209,13 @@ class OtpService
     private function sendOtpEmailSync(string $email, string $otp): void
     {
         try {
+            // Utiliser le facade Mail directement sans ->send()
             Mail::raw("Votre code de vérification OM Pay est : {$otp}. Ce code expire dans 6 minutes.", function ($message) use ($email) {
                 $message->to($email)
                         ->subject('Code de vérification OM Pay');
-            })->send(); // Force l'envoi synchrone
+            });
+
+            Log::info('Email OTP envoyé (sync)', ['email' => $email]);
         } catch (\Exception $e) {
             Log::error('Erreur envoi email OTP (sync)', [
                 'email' => $email,
