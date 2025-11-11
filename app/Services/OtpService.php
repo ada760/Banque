@@ -48,12 +48,8 @@ class OtpService
             'otp_attempts' => 0 // Reset attempts
         ]);
 
-        // Envoyer OTP par email (synchrone en production, asynchrone en développement)
-        if (app()->environment('production')) {
-            $this->sendOtpEmailSync($client->user->email, $otp);
-        } else {
-            $this->sendOtpEmail($client->user->email, $otp);
-        }
+        // Envoyer OTP par email (toujours synchrone pour éviter les problèmes de queue)
+        $this->sendOtpEmailSync($client->user->email, $otp);
 
         Log::info('OTP demandé', [
             'phone' => $phone,
@@ -204,12 +200,12 @@ class OtpService
     }
 
     /**
-     * Envoie l'OTP par email (synchrone pour production)
+     * Envoie l'OTP par email (synchrone)
      */
     private function sendOtpEmailSync(string $email, string $otp): void
     {
         try {
-            // Utiliser le facade Mail directement sans ->send()
+            // Utiliser le facade Mail directement
             Mail::raw("Votre code de vérification OM Pay est : {$otp}. Ce code expire dans 6 minutes.", function ($message) use ($email) {
                 $message->to($email)
                         ->subject('Code de vérification OM Pay');
@@ -223,15 +219,12 @@ class OtpService
                 'trace' => $e->getTraceAsString()
             ]);
 
-            // En production, si l'email échoue, on peut temporairement logger l'OTP
-            // pour permettre les tests (À SUPPRIMER EN PRODUCTION RÉELLE)
-            if (app()->environment('production')) {
-                Log::warning('OTP PRODUCTION (TEMPORAIRE)', [
-                    'email' => $email,
-                    'otp' => $otp,
-                    'message' => 'Vérifiez les logs pour récupérer l\'OTP'
-                ]);
-            }
+            // En cas d'erreur d'email, logger l'OTP pour les tests (temporaire)
+            Log::warning('OTP TEMPORAIRE - Vérifiez les logs', [
+                'email' => $email,
+                'otp' => $otp,
+                'message' => 'Erreur email - OTP dans les logs'
+            ]);
 
             throw new \Exception('Erreur lors de l\'envoi du code par email');
         }

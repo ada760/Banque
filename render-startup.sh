@@ -8,8 +8,47 @@ echo "🚀 Démarrage de l'application Laravel en production..."
 # Vérifier si les variables d'environnement sont définies
 if [ -z "$APP_KEY" ]; then
     echo "❌ APP_KEY non définie, génération automatique..."
-    export APP_KEY=$(php artisan key:generate --show)
+    export APP_KEY=$(php artisan key:generate --show --force)
 fi
+
+# Variables d'environnement essentielles pour la production
+export APP_ENV=${APP_ENV:-production}
+export APP_DEBUG=${APP_DEBUG:-false}
+export APP_URL=${APP_URL:-https://banque-20br.onrender.com}
+
+# Configuration base de données PostgreSQL
+export DB_CONNECTION=${DB_CONNECTION:-pgsql}
+export DB_HOST=${DB_HOST:-localhost}
+export DB_PORT=${DB_PORT:-5432}
+export DB_DATABASE=${DB_DATABASE:-laravel}
+export DB_USERNAME=${DB_USERNAME:-laravel}
+export DB_PASSWORD=${DB_PASSWORD:-password}
+
+# Configuration MongoDB
+export MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017}
+export MONGODB_DATABASE=${MONGODB_DATABASE:-om_pay_db}
+
+# Configuration Redis
+export REDIS_HOST=${REDIS_HOST:-localhost}
+export REDIS_PASSWORD=${REDIS_PASSWORD:-}
+export REDIS_PORT=${REDIS_PORT:-6379}
+export REDIS_DB=${REDIS_DB:-0}
+export REDIS_CACHE_DB=${REDIS_CACHE_DB:-1}
+export QUEUE_CONNECTION=${QUEUE_CONNECTION:-redis}
+
+# Configuration Mail (Gmail SMTP)
+export MAIL_MAILER=${MAIL_MAILER:-smtp}
+export MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
+export MAIL_PORT=${MAIL_PORT:-587}
+export MAIL_USERNAME=${MAIL_USERNAME:-your-email@gmail.com}
+export MAIL_PASSWORD=${MAIL_PASSWORD:-your-app-password}
+export MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+export MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@banque-20br.onrender.com}
+export MAIL_FROM_NAME=${MAIL_FROM_NAME:-"Banque OM Pay"}
+
+# Configuration Swagger
+export L5_SWAGGER_GENERATE_ALWAYS=${L5_SWAGGER_GENERATE_ALWAYS:-false}
+export L5_SWAGGER_BASE_PATH=${L5_SWAGGER_BASE_PATH:-https://banque-20br.onrender.com}
 
 # Nettoyer les caches
 echo "🧹 Nettoyage des caches..."
@@ -39,6 +78,10 @@ if [ "$CLIENT_EXISTS" = "0" ]; then
     echo "🔑 Création du client Passport..."
     php artisan passport:client --personal --name="Banque API Personal Access Client" --no-interaction
 fi
+
+# Générer la documentation Swagger
+echo "📚 Génération de la documentation Swagger..."
+php artisan l5-swagger:generate
 
 # Cacher les configurations pour la production
 echo "⚡ Mise en cache des configurations..."
