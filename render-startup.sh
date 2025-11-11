@@ -11,6 +11,8 @@ if [ -z "$APP_KEY" ]; then
     # Générer une clé de 32 caractères pour AES-256-CBC
     export APP_KEY="base64:$(openssl rand -base64 32)"
     echo "✅ APP_KEY générée: ${APP_KEY}"
+else
+    echo "✅ APP_KEY déjà définie: ${APP_KEY:0:10}..."
 fi
 
 # Variables d'environnement essentielles pour la production
@@ -49,8 +51,16 @@ export MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@banque-20br.onrender.com}
 export MAIL_FROM_NAME=${MAIL_FROM_NAME:-"Banque OM Pay"}
 
 # Configuration Swagger
-export L5_SWAGGER_GENERATE_ALWAYS=${L5_SWAGGER_GENERATE_ALWAYS:-false}
+export L5_SWAGGER_GENERATE_ALWAYS=${L5_SWAGGER_GENERATE_ALWAYS:-true}
 export L5_SWAGGER_BASE_PATH=${L5_SWAGGER_BASE_PATH:-https://banque-20br.onrender.com}
+
+echo "🔧 Variables d'environnement configurées:"
+echo "  - APP_ENV: $APP_ENV"
+echo "  - DB_CONNECTION: $DB_CONNECTION"
+echo "  - REDIS_HOST: $REDIS_HOST"
+echo "  - MAIL_MAILER: $MAIL_MAILER"
+echo "  - MONGODB_URI: $MONGODB_URI"
+echo "  - L5_SWAGGER_GENERATE_ALWAYS: $L5_SWAGGER_GENERATE_ALWAYS"
 
 # Nettoyer les caches
 echo "🧹 Nettoyage des caches..."
