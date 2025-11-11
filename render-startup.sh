@@ -8,7 +8,9 @@ echo "🚀 Démarrage de l'application Laravel en production..."
 # Vérifier si les variables d'environnement sont définies
 if [ -z "$APP_KEY" ]; then
     echo "❌ APP_KEY non définie, génération automatique..."
-    export APP_KEY=$(php artisan key:generate --show --force)
+    # Générer une clé de 32 caractères pour AES-256-CBC
+    export APP_KEY="base64:$(openssl rand -base64 32)"
+    echo "✅ APP_KEY générée: ${APP_KEY}"
 fi
 
 # Variables d'environnement essentielles pour la production
