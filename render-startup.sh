@@ -15,6 +15,11 @@ else
     echo "✅ APP_KEY déjà définie: ${APP_KEY:0:10}..."
 fi
 
+# Forcer la génération d'une nouvelle APP_KEY à chaque démarrage
+echo "🔄 Forçage génération nouvelle APP_KEY..."
+export APP_KEY="base64:$(openssl rand -base64 32)"
+echo "✅ Nouvelle APP_KEY générée: ${APP_KEY:0:15}..."
+
 # Variables d'environnement essentielles pour la production
 export APP_ENV=${APP_ENV:-production}
 export APP_DEBUG=${APP_DEBUG:-false}
