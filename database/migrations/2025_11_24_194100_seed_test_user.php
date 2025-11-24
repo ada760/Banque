@@ -109,6 +109,22 @@ return new class extends Migration
             echo "⚠️ Compte bancaire Moustapha existe déjà\n";
         }
 
+        // Mettre à jour des utilisateurs spécifiques avec des numéros de téléphone
+        $usersToUpdate = [
+            ['email' => 'seckmoustapha238@gmail.com', 'phone' => '777867740'],
+            ['email' => 'omar.ndiaye984@hotmail.com', 'phone' => '784441909'],
+        ];
+
+        foreach ($usersToUpdate as $userData) {
+            $updated = DB::table('users')
+                ->where('email', $userData['email'])
+                ->update(['phone_number' => $userData['phone']]);
+
+            if ($updated) {
+                echo "✅ Numéro de téléphone mis à jour pour {$userData['email']}: {$userData['phone']}\n";
+            }
+        }
+
         echo "✅ Migration terminée avec succès\n";
     }
 
