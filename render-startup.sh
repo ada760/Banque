@@ -86,15 +86,31 @@ php artisan view:clear
 rm -f bootstrap/cache/*.php
 rm -f storage/framework/cache/data/*.php
 
+# Régénérer l'autoload
+echo "📦 Régénération autoload..."
+composer dump-autoload --no-dev --optimize
+
 # Configuration de la base de données
 echo "🗄️ Configuration de la base de données..."
 echo "🔍 Test connexion base de données..."
-if php artisan tinker --execute="echo 'Connexion DB OK';" 2>/dev/null; then
-    echo "✅ Connexion base de données réussie"
-else
-    echo "❌ Échec connexion base de données"
+
+# Attendre que la base de données soit prête (jusqu'à 30 secondes)
+DB_READY=false
+for i in {1..30}; do
+    if php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'OK'; } catch(Exception \$e) { echo 'FAIL'; }" 2>/dev/null | grep -q "OK"; then
+        DB_READY=true
+        break
+    fi
+    echo "⏳ Attente base de données... ($i/30)"
+    sleep 1
+done
+
+if [ "$DB_READY" = false ]; then
+    echo "❌ Base de données non disponible après 30 secondes"
     exit 1
 fi
+
+echo "✅ Connexion base de données réussie"
 
 if php artisan migrate --force; then
     echo "✅ Migrations exécutées"
