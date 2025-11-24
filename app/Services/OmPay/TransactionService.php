@@ -20,6 +20,14 @@ class TransactionService extends BaseService
 
     public function createTransaction(array $data)
     {
+        // Vérifier la connexion MongoDB avant de créer
+        try {
+            DB::connection('mongodb')->getMongoClient();
+        } catch (\Exception $e) {
+            Log::error('MongoDB non disponible pour créer une transaction', ['error' => $e->getMessage()]);
+            throw new \Exception('Service de transactions temporairement indisponible. Veuillez réessayer plus tard.');
+        }
+
         // Validation des données
         $this->validateTransactionData($data);
 
@@ -63,6 +71,26 @@ class TransactionService extends BaseService
 
     public function getFilteredTransactions($userId, array $filters = [], $perPage = 10, $page = 1)
     {
+        try {
+            // Vérifier la connexion MongoDB
+            DB::connection('mongodb')->getMongoClient();
+        } catch (\Exception $e) {
+            // MongoDB non disponible, retourner une réponse vide
+            Log::warning('MongoDB non disponible pour les transactions', ['error' => $e->getMessage()]);
+            return [
+                'data' => [],
+                'pagination' => [
+                    'current_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                    'last_page' => 1,
+                    'from' => null,
+                    'to' => null,
+                ],
+                'filters' => array_merge(['applied' => []], $filters)
+            ];
+        }
+
         // Construire la requête de base
         $query = \App\Models\OmPay\Transaction::where('user_id', $userId);
 
@@ -126,10 +154,62 @@ class TransactionService extends BaseService
 
     public function getTransactionStats($userId)
     {
+        try {
+            // Vérifier la connexion MongoDB
+            DB::connection('mongodb')->getMongoClient();
+        } catch (\Exception $e) {
+            // MongoDB non disponible, retourner des stats vides
+            Log::warning('MongoDB non disponible pour les statistiques', ['error' => $e->getMessage()]);
+            return [
+                'total_transactions' => 0,
+                'total_amount' => 0,
+                'successful_transactions' => 0,
+                'failed_transactions' => 0,
+                'pending_transactions' => 0,
+                'average_transaction' => 0,
+                'monthly_stats' => [
+                    'current_month' => [
+                        'count' => 0,
+                        'amount' => 0
+                    ]
+                ]
+            ];
+        }
+
         return [
             'total_transactions' => $this->transactionRepository->getByUser($userId)->count(),
             'total_amount' => $this->transactionRepository->getTotalAmountByUser($userId),
             'successful_transactions' => $this->transactionRepository->getByUser($userId)->where('status', 'success')->count(),
+            'failed_transactions' => $this->transactionRepository->getByUser($userId)->where('status', 'failed')->count(),
+            'pending_transactions' => $this->transactionRepository->getByUser($userId)->where('status', 'pending')->count(),
+            'average_transaction' => $this->calculateAverageTransaction($userId),
+            'monthly_stats' => $this->getMonthlyStats($userId),
+        ];
+    }
+
+    private function calculateAverageTransaction($userId)
+    {
+        $transactions = $this->transactionRepository->getByUser($userId);
+        $count = $transactions->count();
+        return $count > 0 ? $transactions->sum('amount') / $count : 0;
+    }
+
+    private function getMonthlyStats($userId)
+    {
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+
+        $monthlyTransactions = $this->transactionRepository->getByUser($userId)
+            ->filter(function ($transaction) use ($currentMonth, $currentYear) {
+                $transactionDate = \Carbon\Carbon::parse($transaction->transaction_date);
+                return $transactionDate->month === $currentMonth && $transactionDate->year === $currentYear;
+            });
+
+        return [
+            'current_month' => [
+                'count' => $monthlyTransactions->count(),
+                'amount' => $monthlyTransactions->sum('amount')
+            ]
         ];
     }
 
