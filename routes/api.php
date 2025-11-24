@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompteController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,6 +61,35 @@ Route::middleware(['auth:api'])->prefix('clients')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\ClientController::class, 'dashboard']);
 });
 
+
+// Health check API route
+Route::get('/health', function () {
+    try {
+        // Vérifier PostgreSQL
+        DB::connection('pgsql')->getPdo();
+        $db_status = '✅ PostgreSQL OK';
+
+        return response()->json([
+            'success' => true,
+            'message' => 'API Health Check',
+            'status' => 'healthy',
+            'timestamp' => now(),
+            'services' => [
+                'database' => $db_status,
+            ],
+            'version' => config('app.version', '1.0.0'),
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'API Health Check Failed',
+            'status' => 'unhealthy',
+            'error' => $e->getMessage(),
+            'timestamp' => now(),
+        ], 500);
+    }
+});
 
 // Swagger Documentation routes
 Route::get('/documentation', [App\Http\Controllers\SwaggerController::class, 'index']);
