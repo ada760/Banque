@@ -22,6 +22,7 @@ return new class extends Migration
                 'titulaire' => 'Moustapha Seck',
                 'email' => 'seckmoustapha238@gmail.com',
                 'phone_number' => '772687847',
+                'password' => bcrypt('password'), // Mot de passe par défaut
                 'secret_code' => bcrypt('1234'),
                 'email_verified_at' => now(),
                 'created_at' => now(),
