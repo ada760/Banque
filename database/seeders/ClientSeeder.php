@@ -13,20 +13,10 @@ class ClientSeeder extends Seeder
      */
     public function run(): void
     {
-        // Créer un client spécifique pour les tests - Moustapha
-        $user = \App\Models\User::factory()->create([
-            'titulaire' => 'Moustapha Seck',
-            'email' => 'seckmoustapha238@gmail.com',
-            'phone_number' => '772687847',
-            'secret_code' => bcrypt('1234'), // Code secret pour les tests
-        ]);
+        // Note: L'utilisateur de test Moustapha est maintenant créé via migration
+        // pour éviter les conflits en production
 
-        Client::factory()->create([
-            'telephone' => '772687847',
-            'user_id' => $user->id,
-        ]);
-
-        // Créer 74 autres clients sénégalais réalistes
-        Client::factory()->count(74)->create();
+        // Créer 75 clients sénégalais réalistes (au lieu de 74)
+        Client::factory()->count(75)->create();
     }
 }
