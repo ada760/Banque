@@ -29,6 +29,31 @@ class UpdateSoldeCommand extends Command
         $name = $this->argument('name');
         $amount = $this->argument('amount');
 
+        if ($name === 'check') {
+            // Mode vérification des données
+            $this->info("=== VÉRIFICATION DES DONNÉES ===");
+
+            $users = User::all();
+            $this->info("Utilisateurs trouvés: " . $users->count());
+
+            foreach ($users as $user) {
+                $this->line("User: {$user->titulaire} - Phone: {$user->phone_number} - Email: {$user->email}");
+                if ($user->client) {
+                    $this->line("  └─ Client: {$user->client->telephone}");
+                    if ($user->client->compte) {
+                        foreach ($user->client->compte as $compte) {
+                            $this->line("     └─ Compte: {$compte->num_compte} - Solde: {$compte->solde} - Status: {$compte->status}");
+                        }
+                    }
+                }
+            }
+
+            $clients = \App\Models\Client::all();
+            $this->info("Clients trouvés: " . $clients->count());
+
+            return 0;
+        }
+
         // Trouver l'utilisateur par nom
         $user = User::where('titulaire', $name)->first();
 
