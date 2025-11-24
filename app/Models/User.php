@@ -24,7 +24,12 @@ class User extends Authenticatable
         'id',
         'titulaire',
         'email',
+        'phone_number',
+        'secret_code',
         'password',
+        'last_otp_request',
+        'otp_attempts',
+        'blocked_until',
     ];
    
 
@@ -46,6 +51,9 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'secret_code' => 'hashed',
+        'blocked_until' => 'datetime',
+        'last_otp_request' => 'datetime',
     ];
 
     

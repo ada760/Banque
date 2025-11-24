@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\OmAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -68,7 +69,7 @@ class OmAuthController extends Controller
     public function requestOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|regex:/^[0-9]{9,15}$/',
+            'phone' => 'required|string|regex:/^(\+221)?[0-9]{9,15}$/',
         ]);
 
         if ($validator->fails()) {
@@ -101,34 +102,52 @@ class OmAuthController extends Controller
      * @OA\Post(
      *     path="/auth/verify-otp",
      *     summary="Vérifier le code OTP",
-     *     description="Vérifie le code OTP reçu par email et indique l'étape suivante",
+     *     description="Vérifie le code OTP reçu par email. Si première connexion, génère automatiquement un token. Sinon, indique l'étape suivante.",
      *     tags={"Authentification"},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"phone","otp"},
-     *             @OA\Property(property="phone", type="string", example="772687847", description="Numéro de téléphone"),
-     *             @OA\Property(property="otp", type="string", example="123456", description="Code OTP à 6 chiffres")
+     *             required={"otp"},
+     *             @OA\Property(property="otp", type="string", example="123456", description="Code OTP à 6 chiffres reçu par email")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
      *         description="OTP vérifié avec succès",
      *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="OTP vérifié avec succès"),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="has_secret_code", type="boolean", example=false),
-     *                 @OA\Property(property="next_step", type="string", example="set_secret_code")
-     *             )
+     *             oneOf={
+     *                 @OA\Schema(
+     *                     title="Première connexion",
+     *                     @OA\Property(property="success", type="boolean", example=true),
+     *                     @OA\Property(property="message", type="string", example="Première connexion - Token généré"),
+     *                     @OA\Property(property="data", type="object",
+     *                         @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1Qi..."),
+     *                         @OA\Property(property="token_type", type="string", example="Bearer"),
+     *                         @OA\Property(property="client", type="object",
+     *                             @OA\Property(property="id", type="string", example="a05818f4-df52-3d88-b897-9a5e6019afc1"),
+     *                             @OA\Property(property="telephone", type="string", example="772687847")
+     *                         ),
+     *                         @OA\Property(property="is_first_login", type="boolean", example=true)
+     *                     )
+     *                 ),
+     *                 @OA\Schema(
+     *                     title="Connexion existante",
+     *                     @OA\Property(property="success", type="boolean", example=true),
+     *                     @OA\Property(property="message", type="string", example="OTP vérifié avec succès"),
+     *                     @OA\Property(property="data", type="object",
+     *                         @OA\Property(property="has_secret_code", type="boolean", example=true),
+     *                         @OA\Property(property="next_step", type="string", example="login")
+     *                     )
+     *                 )
+     *             }
      *         )
      *     ),
      *     @OA\Response(
      *         response=401,
-     *         description="Code OTP incorrect",
+     *         description="Code OTP incorrect ou expiré",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Code OTP incorrect")
+     *             @OA\Property(property="message", type="string", example="Code OTP incorrect ou expiré")
      *         )
      *     ),
      *     @OA\Response(
@@ -144,7 +163,7 @@ class OmAuthController extends Controller
     public function verifyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|regex:/^[0-9]{9,15}$/',
+            'phone' => 'required|string|regex:/^(\+221)?[0-9]{9,15}$/',
             'otp' => 'required|string|size:6',
         ]);
 
@@ -157,26 +176,40 @@ class OmAuthController extends Controller
         }
 
         try {
-            $isValid = $this->omAuthService->verifyOtp($request->phone, $request->otp);
+            /** @var \App\Models\User|null $user */
+            $user = $this->omAuthService->verifyOtp($request->phone, $request->otp);
 
-            if (!$isValid) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Code OTP incorrect'
+                    'message' => 'Code OTP incorrect ou expiré'
                 ], 401);
             }
 
-            // Vérifier si le client a déjà un code secret
-            $hasSecretCode = $this->omAuthService->hasSecretCode($request->phone);
+            // Vérifier si l'utilisateur a déjà un code secret
+            $hasSecretCode = $this->omAuthService->hasSecretCode($user->phone_number);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'OTP vérifié avec succès',
-                'data' => [
-                    'has_secret_code' => $hasSecretCode,
-                    'next_step' => $hasSecretCode ? 'login' : 'set_secret_code'
-                ]
-            ]);
+            if (!$hasSecretCode) {
+                // Première connexion - définir le code secret
+                return response()->json([
+                    'success' => true,
+                    'message' => 'OTP vérifié avec succès',
+                    'data' => [
+                        'has_secret_code' => false,
+                        'next_step' => 'set-secret-code'
+                    ]
+                ]);
+            } else {
+                // Connexion existante - demander le code secret
+                return response()->json([
+                    'success' => true,
+                    'message' => 'OTP vérifié avec succès',
+                    'data' => [
+                        'has_secret_code' => true,
+                        'next_step' => 'login'
+                    ]
+                ]);
+            }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -242,7 +275,7 @@ class OmAuthController extends Controller
     public function setSecretCode(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|regex:/^[0-9]{9,15}$/',
+            'phone' => 'required|string|regex:/^(\+221)?[0-9]{9,15}$/',
             'secret_code' => 'required|string|regex:/^[0-9]{4}$/',
         ]);
 
@@ -263,14 +296,11 @@ class OmAuthController extends Controller
                 'data' => [
                     'token' => $result['token'],
                     'token_type' => $result['token_type'],
-                    'client' => [
-                        'id' => $result['client']->id,
-                        'telephone' => $result['client']->telephone,
-                        'user' => [
-                            'id' => $result['client']->user->id,
-                            'titulaire' => $result['client']->user->titulaire,
-                            'email' => $result['client']->user->email
-                        ]
+                    'user' => [
+                        'id' => $result['user']->id,
+                        'phone_number' => $result['user']->phone_number,
+                        'titulaire' => $result['user']->titulaire,
+                        'email' => $result['user']->email
                     ],
                     'is_first_login' => $result['is_first_login']
                 ]
@@ -286,15 +316,15 @@ class OmAuthController extends Controller
     /**
      * @OA\Post(
      *     path="/auth/login",
-     *     summary="Connexion avec code secret OM Pay",
-     *     description="Authentification avec le code secret à 4 chiffres pour les connexions suivantes",
+     *     summary="Connexion avec numéro de téléphone et code secret OM Pay",
+     *     description="Authentification avec numéro de téléphone et code secret à 4 chiffres. ⚠️ REQUIERT UNE VÉRIFICATION OTP PRÉALABLE : Vous devez d'abord appeler /auth/request-otp puis /auth/verify-otp avant de pouvoir utiliser cette endpoint.",
      *     tags={"Authentification"},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"phone","secret_code"},
-     *             @OA\Property(property="phone", type="string", example="772687847", description="Numéro de téléphone"),
-     *             @OA\Property(property="secret_code", type="string", example="1234", description="Code secret à 4 chiffres")
+     *             @OA\Property(property="phone", type="string", example="772687847", description="Numéro de téléphone Orange Money (doit avoir été vérifié via OTP)"),
+     *             @OA\Property(property="secret_code", type="string", example="1234", description="Code secret à 4 chiffres défini lors de la première connexion")
      *         )
      *     ),
      *     @OA\Response(
@@ -311,18 +341,26 @@ class OmAuthController extends Controller
      *                     @OA\Property(property="telephone", type="string", example="772687847"),
      *                     @OA\Property(property="user", type="object",
      *                         @OA\Property(property="id", type="string", example="a17b046a-0da9-3d17-ba26-978f3ea3a1e3"),
-     *                         @OA\Property(property="titulaire", type="string", example="Abdoulaye Seck"),
+     *                         @OA\Property(property="titulaire", type="string", example="Moustapha Seck"),
      *                         @OA\Property(property="email", type="string", example="seckmoustapha238@gmail.com")
      *                     )
      *                 ),
      *                 @OA\Property(property="compte_actif", type="object",
      *                     @OA\Property(property="id", type="string", example="62028976-381e-3a70-9073-df6de0fd5e74"),
-     *                     @OA\Property(property="num_compte", type="string", example="C0081999796"),
-     *                     @OA\Property(property="solde", type="number", format="float", example=8728.00),
-     *                     @OA\Property(property="devise", type="string", example="XOF")
+     *                     @OA\Property(property="num_compte", type="string", example="C2472371825"),
+     *                     @OA\Property(property="solde", type="number", format="float", example=37440.50),
+     *                     @OA\Property(property="devise", type="string", example="USD")
      *                 ),
      *                 @OA\Property(property="is_first_login", type="boolean", example=false)
      *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="OTP non vérifié - Vérification OTP requise",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Veuillez d'abord vérifier votre code OTP avant de vous connecter")
      *         )
      *     ),
      *     @OA\Response(
@@ -346,7 +384,7 @@ class OmAuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|regex:/^[0-9]{9,15}$/',
+            'phone' => 'required|string|regex:/^(\+221)?[0-9]{9,15}$/',
             'secret_code' => 'required|string|regex:/^[0-9]{4}$/',
         ]);
 
@@ -358,8 +396,32 @@ class OmAuthController extends Controller
             ], 422);
         }
 
+        // Vérifier si l'OTP a été vérifié pour ce numéro
+        if (!$this->omAuthService->isOtpVerified($request->phone)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Veuillez d\'abord vérifier votre code OTP avant de vous connecter'
+            ], 403);
+        }
+
         try {
             $result = $this->omAuthService->loginWithSecretCode($request->phone, $request->secret_code);
+
+            // Supprimer le flag OTP vérifié après connexion réussie
+            Cache::forget("otp_verified:{$request->phone}");
+
+            // Récupérer les données du dashboard
+            $user = $result['user'];
+            $compteActif = $result['compte_actif'];
+
+            // Récupérer l'historique des transactions (dernières 10)
+            $transactionService = app(\App\Services\OmPay\TransactionService::class);
+            $transactions = $transactionService->getFilteredTransactions(
+                $user->id,
+                [],
+                10,
+                1
+            )['data'];
 
             return response()->json([
                 'success' => true,
@@ -367,20 +429,36 @@ class OmAuthController extends Controller
                 'data' => [
                     'token' => $result['token'],
                     'token_type' => $result['token_type'],
+                    'user' => [
+                        'id' => $user->id,
+                        'phone_number' => $user->phone_number,
+                        'titulaire' => $user->titulaire,
+                        'email' => $user->email
+                    ],
                     'client' => [
                         'id' => $result['client']->id,
-                        'telephone' => $result['client']->telephone,
-                        'user' => [
-                            'id' => $result['client']->user->id,
-                            'titulaire' => $result['client']->user->titulaire,
-                            'email' => $result['client']->user->email
-                        ]
+                        'telephone' => $result['client']->telephone
                     ],
                     'compte_actif' => [
-                        'id' => $result['compte_actif']->id,
-                        'num_compte' => $result['compte_actif']->num_compte,
-                        'solde' => $result['compte_actif']->solde,
-                        'devise' => $result['compte_actif']->devise
+                        'id' => $compteActif->id,
+                        'num_compte' => $compteActif->num_compte,
+                        'solde' => $compteActif->solde,
+                        'devise' => $compteActif->devise
+                    ],
+                    'dashboard' => [
+                        'user' => [
+                            'id' => $user->id,
+                            'phone_number' => $user->phone_number,
+                            'titulaire' => $user->titulaire,
+                            'email' => $user->email
+                        ],
+                        'compte_actif' => [
+                            'id' => $compteActif->id,
+                            'num_compte' => $compteActif->num_compte,
+                            'solde' => $compteActif->solde,
+                            'devise' => $compteActif->devise
+                        ],
+                        'historique_transactions' => $transactions
                     ],
                     'is_first_login' => $result['is_first_login']
                 ]
@@ -414,34 +492,77 @@ class OmAuthController extends Controller
     }
 
     /**
-     * Vérifier le statut d'authentification
+     * Récupérer les informations de l'utilisateur connecté
      */
-    public function checkAuth(): JsonResponse
+    public function me(): JsonResponse
     {
-        $client = $this->omAuthService->getCurrentClient();
+        $user = $this->omAuthService->getCurrentUser();
 
-        if (!$client) {
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Non authentifié'
             ], 401);
         }
 
-        $compteActif = $client->compte->where('status', 'actif')->first();
+        $client = $user->client;
+        $compteActif = $client ? $client->compte->where('status', 'actif')->first() : null;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->titulaire ? explode(' ', $user->titulaire)[0] : 'Utilisateur',
+                    'phone_number' => $user->phone_number,
+                    'email' => $user->email
+                ],
+                'account' => $compteActif ? [
+                    'id' => $compteActif->id,
+                    'balance' => floatval($compteActif->solde),
+                    'currency' => $compteActif->devise ?? 'XOF',
+                    'status' => $compteActif->status
+                ] : [
+                    'id' => null,
+                    'balance' => 0.0,
+                    'currency' => 'XOF',
+                    'status' => 'inactive'
+                ]
+            ]
+        ]);
+    }
+
+    /**
+     * Vérifier le statut d'authentification
+     */
+    public function checkAuth(): JsonResponse
+    {
+        $user = $this->omAuthService->getCurrentUser();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Non authentifié'
+            ], 401);
+        }
+
+        $client = $user->client;
+        $compteActif = $client ? $client->compte->where('status', 'actif')->first() : null;
 
         return response()->json([
             'success' => true,
             'message' => 'Authentifié',
             'data' => [
-                'client' => [
-                    'id' => $client->id,
-                    'telephone' => $client->telephone,
-                    'user' => [
-                        'id' => $client->user->id,
-                        'titulaire' => $client->user->titulaire,
-                        'email' => $client->user->email
-                    ]
+                'user' => [
+                    'id' => $user->id,
+                    'phone_number' => $user->phone_number,
+                    'titulaire' => $user->titulaire,
+                    'email' => $user->email
                 ],
+                'client' => $client ? [
+                    'id' => $client->id,
+                    'telephone' => $client->telephone
+                ] : null,
                 'compte_actif' => $compteActif ? [
                     'id' => $compteActif->id,
                     'num_compte' => $compteActif->num_compte,

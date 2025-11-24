@@ -16,6 +16,7 @@ class Merchant extends Model
         'location',
         'category',
         'status', // active, inactive
+        'solde', // Solde du marchand
         'metadata', // Objet JSON pour données supplémentaires
     ];
 

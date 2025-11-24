@@ -805,7 +805,7 @@
                     "Authentification"
                 ],
                 "summary": "Vérifier le code OTP",
-                "description": "Vérifie le code OTP reçu par email et indique l'étape suivante",
+                "description": "Vérifie le code OTP reçu par email. Si première connexion, génère automatiquement un token. Sinon, indique l'étape suivante.",
                 "operationId": "8c79f35db60bb69642c73778c92e2c31",
                 "requestBody": {
                     "required": true,
@@ -813,17 +813,11 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "phone",
                                     "otp"
                                 ],
                                 "properties": {
-                                    "phone": {
-                                        "description": "Numéro de téléphone",
-                                        "type": "string",
-                                        "example": "772687847"
-                                    },
                                     "otp": {
-                                        "description": "Code OTP à 6 chiffres",
+                                        "description": "Code OTP à 6 chiffres reçu par email",
                                         "type": "string",
                                         "example": "123456"
                                     }
@@ -839,36 +833,85 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "OTP vérifié avec succès"
-                                        },
-                                        "data": {
+                                    "oneOf": [
+                                        {
+                                            "title": "Première connexion",
                                             "properties": {
-                                                "has_secret_code": {
+                                                "success": {
                                                     "type": "boolean",
-                                                    "example": false
+                                                    "example": true
                                                 },
-                                                "next_step": {
+                                                "message": {
                                                     "type": "string",
-                                                    "example": "set_secret_code"
+                                                    "example": "Première connexion - Token généré"
+                                                },
+                                                "data": {
+                                                    "properties": {
+                                                        "token": {
+                                                            "type": "string",
+                                                            "example": "eyJ0eXAiOiJKV1Qi..."
+                                                        },
+                                                        "token_type": {
+                                                            "type": "string",
+                                                            "example": "Bearer"
+                                                        },
+                                                        "client": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string",
+                                                                    "example": "a05818f4-df52-3d88-b897-9a5e6019afc1"
+                                                                },
+                                                                "telephone": {
+                                                                    "type": "string",
+                                                                    "example": "772687847"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "is_first_login": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "title": "Connexion existante",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "OTP vérifié avec succès"
+                                                },
+                                                "data": {
+                                                    "properties": {
+                                                        "has_secret_code": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "next_step": {
+                                                            "type": "string",
+                                                            "example": "login"
+                                                        }
+                                                    },
+                                                    "type": "object"
                                                 }
                                             },
                                             "type": "object"
                                         }
-                                    },
-                                    "type": "object"
+                                    ]
                                 }
                             }
                         }
                     },
                     "401": {
-                        "description": "Code OTP incorrect",
+                        "description": "Code OTP incorrect ou expiré",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -879,7 +922,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Code OTP incorrect"
+                                            "example": "Code OTP incorrect ou expiré"
                                         }
                                     },
                                     "type": "object"
@@ -1058,8 +1101,8 @@
                 "tags": [
                     "Authentification"
                 ],
-                "summary": "Connexion avec code secret OM Pay",
-                "description": "Authentification avec le code secret à 4 chiffres pour les connexions suivantes",
+                "summary": "Connexion avec numéro de téléphone et code secret OM Pay",
+                "description": "Authentification avec numéro de téléphone et code secret à 4 chiffres. ⚠️ REQUIERT UNE VÉRIFICATION OTP PRÉALABLE : Vous devez d'abord appeler /auth/request-otp puis /auth/verify-otp avant de pouvoir utiliser cette endpoint.",
                 "operationId": "aef2475c09e9a0443d079cd1d004b207",
                 "requestBody": {
                     "required": true,
@@ -1072,12 +1115,12 @@
                                 ],
                                 "properties": {
                                     "phone": {
-                                        "description": "Numéro de téléphone",
+                                        "description": "Numéro de téléphone Orange Money (doit avoir été vérifié via OTP)",
                                         "type": "string",
                                         "example": "772687847"
                                     },
                                     "secret_code": {
-                                        "description": "Code secret à 4 chiffres",
+                                        "description": "Code secret à 4 chiffres défini lors de la première connexion",
                                         "type": "string",
                                         "example": "1234"
                                     }
@@ -1130,7 +1173,7 @@
                                                                 },
                                                                 "titulaire": {
                                                                     "type": "string",
-                                                                    "example": "Abdoulaye Seck"
+                                                                    "example": "Moustapha Seck"
                                                                 },
                                                                 "email": {
                                                                     "type": "string",
@@ -1150,16 +1193,16 @@
                                                         },
                                                         "num_compte": {
                                                             "type": "string",
-                                                            "example": "C0081999796"
+                                                            "example": "C2472371825"
                                                         },
                                                         "solde": {
                                                             "type": "number",
                                                             "format": "float",
-                                                            "example": 8728
+                                                            "example": 37440.5
                                                         },
                                                         "devise": {
                                                             "type": "string",
-                                                            "example": "XOF"
+                                                            "example": "USD"
                                                         }
                                                     },
                                                     "type": "object"
@@ -1170,6 +1213,26 @@
                                                 }
                                             },
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "OTP non vérifié - Vérification OTP requise",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Veuillez d'abord vérifier votre code OTP avant de vous connecter"
                                         }
                                     },
                                     "type": "object"
@@ -1224,20 +1287,109 @@
                 "tags": [
                     "Transactions OM Pay"
                 ],
-                "summary": "Récupérer les transactions de l'utilisateur",
-                "description": "Retourne la liste des transactions OM Pay de l'utilisateur authentifié",
+                "summary": "Récupérer les transactions de l'utilisateur avec filtrage et pagination",
+                "description": "Retourne la liste filtrée et paginée des transactions OM Pay de l'utilisateur authentifié",
                 "operationId": "2e8501ca9811ba5523b2b56db36072c2",
                 "parameters": [
                     {
-                        "name": "limit",
+                        "name": "page",
                         "in": "query",
-                        "description": "Nombre maximum de transactions à retourner",
+                        "description": "Numéro de la page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page",
                         "required": false,
                         "schema": {
                             "type": "integer",
                             "default": 10,
                             "maximum": 100,
                             "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Filtrer par type de transaction",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "transfer",
+                                "payment"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filtrer par statut",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "success",
+                                "failed"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "description": "Date de début (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "description": "Date de fin (YYYY-MM-DD)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "min_amount",
+                        "in": "query",
+                        "description": "Montant minimum",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "max_amount",
+                        "in": "query",
+                        "description": "Montant maximum",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche dans la description",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
@@ -1329,6 +1481,74 @@
                                                 },
                                                 "type": "object"
                                             }
+                                        },
+                                        "pagination": {
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "filters": {
+                                            "properties": {
+                                                "applied": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "date_from": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "date_to": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "min_amount": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "max_amount": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "search": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -1692,6 +1912,105 @@
                                                         }
                                                     },
                                                     "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Accès non autorisé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "This action is unauthorized."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/ompay/mon-compte": {
+            "get": {
+                "tags": [
+                    "Transactions OM Pay"
+                ],
+                "summary": "Voir les informations du compte OM Pay",
+                "description": "Retourne les informations personnelles et le QR code de l'utilisateur connecté",
+                "operationId": "286cfca7405ba1c623fb06fb2d9363d6",
+                "responses": {
+                    "200": {
+                        "description": "Informations du compte récupérées avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Informations du compte récupérées avec succès"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "example": "a05818f4-df52-3d88-b897-9a5e6019afc1"
+                                                },
+                                                "prenom": {
+                                                    "type": "string",
+                                                    "example": "Moustapha"
+                                                },
+                                                "nom": {
+                                                    "type": "string",
+                                                    "example": "Seck"
+                                                },
+                                                "telephone": {
+                                                    "type": "string",
+                                                    "example": "772687847"
+                                                },
+                                                "solde": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 35420.5
+                                                },
+                                                "qr_code_url": {
+                                                    "type": "string",
+                                                    "example": "https://banque-api.com/storage/qrcodes/772687847.png"
                                                 }
                                             },
                                             "type": "object"

@@ -37,13 +37,14 @@ export DB_PASSWORD=${DB_PASSWORD:-password}
 export MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017}
 export MONGODB_DATABASE=${MONGODB_DATABASE:-om_pay_db}
 
-# Configuration Redis
+# Configuration Redis (optionnel)
 export REDIS_HOST=${REDIS_HOST:-localhost}
 export REDIS_PASSWORD=${REDIS_PASSWORD:-}
 export REDIS_PORT=${REDIS_PORT:-6379}
 export REDIS_DB=${REDIS_DB:-0}
 export REDIS_CACHE_DB=${REDIS_CACHE_DB:-1}
-export QUEUE_CONNECTION=${QUEUE_CONNECTION:-redis}
+# Utiliser database queue si Redis non disponible
+export QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
 
 # Configuration Mail (Gmail SMTP)
 export MAIL_MAILER=${MAIL_MAILER:-smtp}

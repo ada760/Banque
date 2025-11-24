@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Client;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -20,19 +21,19 @@ class OtpService
      */
     public function requestOtp(string $phone): array
     {
-        // Vérifier si le client existe
-        $client = Client::where('telephone', $phone)->first();
-        if (!$client) {
+        // Vérifier si l'utilisateur existe
+        $user = User::where('phone_number', $phone)->first();
+        if (!$user) {
             throw new \Exception('Numéro de téléphone non trouvé dans notre système');
         }
 
         // Vérifier rate limiting
-        if (!$this->canRequestOtp($client)) {
+        if (!$this->canRequestOtp($user)) {
             throw new \Exception('Veuillez attendre avant de demander un nouveau code');
         }
 
         // Vérifier si compte bloqué
-        if ($this->isBlocked($client)) {
+        if ($this->isBlocked($user)) {
             throw new \Exception('Compte temporairement bloqué. Réessayez plus tard.');
         }
 
@@ -42,19 +43,29 @@ class OtpService
         // Stocker OTP en cache (hashé)
         $this->storeOtp($phone, $otp);
 
-        // Mettre à jour client
-        $client->update([
+        // Stocker temporairement le numéro de téléphone pour la vérification
+        Cache::put('last_otp_phone', $phone, self::OTP_TTL);
+
+        // Mettre à jour user
+        $user->update([
             'last_otp_request' => now(),
             'otp_attempts' => 0 // Reset attempts
         ]);
 
-        // Envoyer OTP par email (toujours synchrone pour éviter les problèmes de queue)
-        $this->sendOtpEmailSync($client->user->email, $otp);
+        // Envoyer l'OTP par email (toujours, même en développement pour les tests)
+        $this->sendOtpEmailSync($user->email, $otp);
 
         Log::info('OTP demandé', [
             'phone' => $phone,
-            'client_id' => $client->id,
-            'user_id' => $client->user_id
+            'user_id' => $user->id,
+            'otp' => $otp // Pour debug/tests seulement
+        ]);
+
+        // Log supplémentaire pour développement
+        Log::warning('OTP POUR TESTS - Vérifiez les logs', [
+            'email' => $user->email,
+            'otp' => $otp,
+            'message' => 'Utilisez cet OTP pour les tests'
         ]);
 
         return [
@@ -64,62 +75,62 @@ class OtpService
     }
 
     /**
-     * Vérifie un OTP
+     * Vérifie un OTP pour un numéro de téléphone spécifique
      */
-    public function verifyOtp(string $phone, string $otp): bool
+    public function verifyOtp(string $phone, string $otp): ?User
     {
-        $client = Client::where('telephone', $phone)->first();
-        if (!$client) {
-            return false;
-        }
-
-        // Vérifier si bloqué
-        if ($this->isBlocked($client)) {
-            throw new \Exception('Compte temporairement bloqué');
-        }
-
         $cacheKey = "otp:{$phone}";
         $storedData = Cache::get($cacheKey);
 
-        if (!$storedData) {
-            $this->incrementAttempts($client);
-            return false;
+        if (!$storedData || !isset($storedData['otp'])) {
+            return null;
         }
 
-        // Vérifier OTP avec password_verify (plus approprié pour bcrypt)
+        // Vérifier OTP avec password_verify
         if (!password_verify($otp, $storedData['otp'])) {
-            $this->incrementAttempts($client);
-            return false;
+            $this->incrementAttempts(User::where('phone_number', $phone)->first());
+            return null;
         }
 
         // Vérifier expiration
         if (Carbon::now()->timestamp > $storedData['expires_at']) {
-            $this->incrementAttempts($client);
-            return false;
+            return null; // OTP expiré
         }
 
-        // OTP valide - supprimer du cache
+        $user = User::where('phone_number', $phone)->first();
+
+        if (!$user) {
+            return null;
+        }
+
+        // Vérifier si bloqué
+        if ($this->isBlocked($user)) {
+            throw new \Exception('Compte temporairement bloqué');
+        }
+
+        // OTP valide - marquer comme vérifié et supprimer du cache
+        Cache::put("otp_verified:{$phone}", true, 300); // 5 minutes
         Cache::forget($cacheKey);
 
         // Reset attempts
-        $client->update(['otp_attempts' => 0]);
+        $user->update(['otp_attempts' => 0]);
 
         Log::info('OTP vérifié avec succès', [
             'phone' => $phone,
-            'client_id' => $client->id
+            'user_id' => $user->id
         ]);
 
-        return true;
+        return $user;
     }
 
     /**
-     * Définit le code secret OM pour un client
+     * Définit le code secret pour un utilisateur
      */
-    public function setSecretCode(string $phone, string $secretCode): Client
+    public function setSecretCode(string $phone, string $secretCode): User
     {
-        $client = Client::where('telephone', $phone)->first();
-        if (!$client) {
-            throw new \Exception('Client non trouvé');
+        $user = User::where('phone_number', $phone)->first();
+        if (!$user) {
+            throw new \Exception('Utilisateur non trouvé');
         }
 
         // Valider format code secret (4 chiffres)
@@ -127,34 +138,42 @@ class OtpService
             throw new \Exception('Le code secret doit contenir exactement 4 chiffres');
         }
 
-        $client->update([
-            'code_secret_om' => bcrypt($secretCode),
+        $user->update([
+            'secret_code' => $secretCode,
             'otp_attempts' => 0
         ]);
 
-        Log::info('Code secret OM défini', [
-            'client_id' => $client->id,
+        Log::info('Code secret défini', [
+            'user_id' => $user->id,
             'phone' => $phone
         ]);
 
-        return $client;
+        return $user;
     }
 
     /**
-     * Vérifie le code secret OM
+     * Vérifie si l'OTP a été vérifié pour un numéro de téléphone
      */
-    public function verifySecretCode(string $phone, string $secretCode): ?Client
+    public function isOtpVerified(string $phone): bool
     {
-        $client = Client::where('telephone', $phone)->first();
-        if (!$client || !$client->code_secret_om) {
+        return Cache::has("otp_verified:{$phone}");
+    }
+
+    /**
+     * Vérifie le code secret
+     */
+    public function verifySecretCode(string $phone, string $secretCode): ?User
+    {
+        $user = User::where('phone_number', $phone)->first();
+        if (!$user || !$user->secret_code) {
             return null;
         }
 
-        if (!hash_equals($client->code_secret_om, bcrypt($secretCode))) {
+        if (!Hash::check($secretCode, $user->secret_code)) {
             return null;
         }
 
-        return $client;
+        return $user;
     }
 
     /**
@@ -233,29 +252,29 @@ class OtpService
     /**
      * Vérifie si on peut demander un nouvel OTP
      */
-    private function canRequestOtp(Client $client): bool
+    private function canRequestOtp(User $user): bool
     {
-        if (!$client->last_otp_request) {
+        if (!$user->last_otp_request) {
             return true;
         }
 
-        return $client->last_otp_request->addSeconds(self::RATE_LIMIT_SECONDS)->isPast();
+        return $user->last_otp_request->addSeconds(self::RATE_LIMIT_SECONDS)->isPast();
     }
 
     /**
-     * Vérifie si le client est bloqué
+     * Vérifie si l'utilisateur est bloqué
      */
-    private function isBlocked(Client $client): bool
+    private function isBlocked(User $user): bool
     {
-        return $client->blocked_until && $client->blocked_until->isFuture();
+        return $user->blocked_until && $user->blocked_until->isFuture();
     }
 
     /**
      * Incrémente les tentatives et bloque si nécessaire
      */
-    private function incrementAttempts(Client $client): void
+    private function incrementAttempts(User $user): void
     {
-        $attempts = $client->otp_attempts + 1;
+        $attempts = $user->otp_attempts + 1;
 
         $updateData = ['otp_attempts' => $attempts];
 
@@ -265,10 +284,10 @@ class OtpService
             $updateData['otp_attempts'] = 0; // Reset après blocage
         }
 
-        $client->update($updateData);
+        $user->update($updateData);
 
         Log::warning('Tentative OTP échouée', [
-            'client_id' => $client->id,
+            'user_id' => $user->id,
             'attempts' => $attempts
         ]);
     }

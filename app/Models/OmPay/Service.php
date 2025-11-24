@@ -15,6 +15,7 @@ class Service extends Model
         'provider', // ex: "Orange", "SDE"
         'fee_percentage',
         'status', // active, inactive
+        'solde', // Solde du service
         'metadata', // Objet JSON pour config spécifique
     ];
 

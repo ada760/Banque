@@ -20,7 +20,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // OM Pay Authentication routes (sans middleware auth)
 Route::prefix('auth')->group(function () {
-    Route::post('/request-otp', [\App\Http\Controllers\OmAuthController::class, 'requestOtp']);
+    Route::post('/request-otp', [\App\Http\Controllers\OmAuthController::class, 'requestOtp'])->middleware('throttle:3,1'); // 3 par minute
     Route::post('/verify-otp', [\App\Http\Controllers\OmAuthController::class, 'verifyOtp']);
     Route::post('/set-secret-code', [\App\Http\Controllers\OmAuthController::class, 'setSecretCode']);
     Route::post('/login', [\App\Http\Controllers\OmAuthController::class, 'login']);
@@ -41,17 +41,39 @@ Route::middleware(['auth:api'])->group(function () {
     Route::middleware(['can:viewAny,App\Models\Compte'])->group(function () {
         Route::get('/comptes', [CompteController::class, 'index']);
     });
+});
 
-    // Routes OM Pay (MongoDB) - Clients avec compte actif
-    Route::prefix('ompay')->group(function () {
-        Route::middleware(['can:viewOwnTransactions,App\Models\OmPay\Transaction'])->group(function () {
-            Route::get('/transactions', [\App\Http\Controllers\OmPay\TransactionController::class, 'index']);
-            Route::get('/transactions/stats', [\App\Http\Controllers\OmPay\TransactionController::class, 'stats']);
-        });
-        Route::middleware(['can:createTransaction,App\Models\OmPay\Transaction'])->group(function () {
-            Route::post('/transactions', [\App\Http\Controllers\OmPay\TransactionController::class, 'store']);
-        });
-    });
+// Routes OM Pay (MongoDB) - Protected by authentication
+Route::middleware(['auth:api'])->prefix('ompay')->group(function () {
+    Route::get('/transactions', [\App\Http\Controllers\OmPay\TransactionController::class, 'index']);
+    Route::get('/transactions/stats', [\App\Http\Controllers\OmPay\TransactionController::class, 'stats']);
+    Route::post('/transactions', [\App\Http\Controllers\OmPay\TransactionController::class, 'store']);
+    Route::get('/mon-compte', [\App\Http\Controllers\OmPay\TransactionController::class, 'monCompte']);
+    Route::get('/comptes/{id}/transactions', [\App\Http\Controllers\OmPay\TransactionController::class, 'getTransactionsByCompte']);
+});
+
+// User profile endpoint
+Route::middleware(['auth:api'])->get('/me', [\App\Http\Controllers\OmAuthController::class, 'me']);
+
+// Routes clients - Protected by authentication
+Route::middleware(['auth:api'])->prefix('clients')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\ClientController::class, 'dashboard']);
+});
+
+// Test route for MongoDB connection
+Route::get('/test-mongo', function () {
+    try {
+        $transaction = \App\Models\OmPay\Transaction::create([
+            'user_id' => 1,
+            'type' => 'payment',
+            'amount' => 100,
+            'status' => 'success',
+            'transaction_date' => now(),
+        ]);
+        return response()->json(['success' => true, 'message' => 'MongoDB connection works', 'data' => $transaction]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'error' => $e->getMessage()]);
+    }
 });
 
 // Swagger Documentation routes

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Client;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -16,6 +17,14 @@ class OmAuthService
     }
 
     /**
+     * Normalise le numéro de téléphone (supprime +221 si présent)
+     */
+    private function normalizePhone(string $phone): string
+    {
+        return preg_replace('/^\+221/', '', $phone);
+    }
+
+    /**
      * Étape 1: Demande d'OTP pour première connexion
      */
     public function requestOtp(string $phone): array
@@ -26,78 +35,84 @@ class OmAuthService
     /**
      * Étape 2: Vérification OTP
      */
-    public function verifyOtp(string $phone, string $otp): bool
+    public function verifyOtp(string $phone, string $otp): ?User
     {
         return $this->otpService->verifyOtp($phone, $otp);
     }
 
     /**
-     * Étape 3: Définition du code secret OM (première fois)
+     * Étape 3: Définition du code secret (première fois)
      */
     public function setSecretCode(string $phone, string $secretCode): array
     {
-        $client = Client::where('telephone', $phone)->first();
-        if (!$client) {
-            throw new \Exception('Client non trouvé');
+        $user = User::where('phone_number', $phone)->first();
+        if (!$user) {
+            throw new \Exception('Utilisateur non trouvé');
         }
 
-        // Vérifier si le client a déjà un code secret défini
-        if (!empty($client->code_secret_om)) {
+        // Vérifier si l'utilisateur a déjà un code secret défini
+        if (!empty($user->secret_code)) {
             // Si le code fourni correspond au code existant, permettre la connexion
-            if (password_verify($secretCode, $client->code_secret_om)) {
+            if (Hash::check($secretCode, $user->secret_code)) {
                 // Générer token JWT pour connexion normale
-                $token = $this->generateToken($client);
+                $token = $this->generateToken($user);
 
                 return [
                     'message' => 'Connexion réussie avec code secret existant',
                     'token' => $token,
                     'token_type' => 'Bearer',
-                    'client' => $client,
+                    'user' => $user,
                     'is_first_login' => false
                 ];
             } else {
-                throw new \Exception('Un code secret OM Pay est déjà défini pour ce numéro. Utilisez la connexion normale avec le bon code.');
+                throw new \Exception('Un code secret est déjà défini pour ce numéro. Utilisez la connexion normale avec le bon code.');
             }
         }
 
         // Définir le code secret via OtpService (première fois)
-        $client = $this->otpService->setSecretCode($phone, $secretCode);
+        $user = $this->otpService->setSecretCode($phone, $secretCode);
 
         // Générer token JWT
-        $token = $this->generateToken($client);
+        $token = $this->generateToken($user);
 
         return [
             'message' => 'Code secret défini avec succès',
             'token' => $token,
             'token_type' => 'Bearer',
-            'client' => $client,
+            'user' => $user,
             'is_first_login' => true
         ];
     }
 
     /**
-     * Authentification avec code secret OM (connexions suivantes)
+     * Authentification avec code secret (connexions suivantes)
      */
     public function loginWithSecretCode(string $phone, string $secretCode): array
     {
-        $client = $this->otpService->verifySecretCode($phone, $secretCode);
+        $user = $this->otpService->verifySecretCode($phone, $secretCode);
 
-        if (!$client) {
+        if (!$user) {
             throw new \Exception('Code secret incorrect');
         }
 
-        // Vérifier que le client a un compte actif
+        // Vérifier que l'utilisateur a un client avec un compte actif
+        $client = $user->client;
+        if (!$client) {
+            throw new \Exception('Aucun client associé trouvé');
+        }
+
         $compteActif = $client->compte->where('status', 'actif')->first();
         if (!$compteActif) {
             throw new \Exception('Aucun compte actif trouvé');
         }
 
-        $token = $this->generateToken($client);
+        $token = $this->generateToken($user);
 
         return [
             'message' => 'Connexion réussie',
             'token' => $token,
             'token_type' => 'Bearer',
+            'user' => $user,
             'client' => $client,
             'compte_actif' => $compteActif,
             'is_first_login' => false
@@ -105,21 +120,37 @@ class OmAuthService
     }
 
     /**
-     * Vérifie si un client a déjà un code secret défini
+     * Vérifie si un utilisateur a déjà un code secret défini
      */
     public function hasSecretCode(string $phone): bool
     {
-        $client = Client::where('telephone', $phone)->first();
-        return $client && !empty($client->code_secret_om);
+        $user = User::where('phone_number', $phone)->first();
+        return $user && !empty($user->secret_code);
     }
 
     /**
-     * Génère un token JWT pour le client
+     * Génère un token JWT pour l'utilisateur
      */
-    private function generateToken(Client $client): string
+    private function generateToken(User $user): string
     {
         // Utilisation de Passport (comme dans AuthService existant)
-        return $client->user->createToken('OM Pay Token')->accessToken;
+        return $user->createToken('OM Pay Token')->accessToken;
+    }
+
+    /**
+     * Génère un token JWT pour l'utilisateur (méthode publique)
+     */
+    public function generateTokenForUser(User $user): string
+    {
+        return $this->generateToken($user);
+    }
+
+    /**
+     * Vérifie si l'OTP a été vérifié pour un numéro de téléphone
+     */
+    public function isOtpVerified(string $phone): bool
+    {
+        return $this->otpService->isOtpVerified($phone);
     }
 
     /**
@@ -136,10 +167,18 @@ class OmAuthService
      */
     public function logout(): void
     {
-        // Révoquer le token actuel (Passport)
+        // Révoquer tous les tokens de l'utilisateur (Passport)
         if (Auth::check()) {
-            Auth::user()->currentAccessToken()->delete();
+            Auth::user()->tokens()->delete();
         }
+    }
+
+    /**
+     * Récupère l'utilisateur actuellement authentifié
+     */
+    public function getCurrentUser(): ?User
+    {
+        return Auth::user();
     }
 
     /**

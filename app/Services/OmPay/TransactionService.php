@@ -61,6 +61,69 @@ class TransactionService extends BaseService
         return $this->transactionRepository->getByUser($userId, $limit);
     }
 
+    public function getFilteredTransactions($userId, array $filters = [], $perPage = 10, $page = 1)
+    {
+        // Construire la requête de base
+        $query = \App\Models\OmPay\Transaction::where('user_id', $userId);
+
+        // Appliquer les filtres
+        $appliedFilters = [];
+
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+            $appliedFilters[] = 'type';
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+            $appliedFilters[] = 'status';
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->where('transaction_date', '>=', $filters['date_from'] . ' 00:00:00');
+            $appliedFilters[] = 'date_from';
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->where('transaction_date', '<=', $filters['date_to'] . ' 23:59:59');
+            $appliedFilters[] = 'date_to';
+        }
+
+        if (!empty($filters['min_amount'])) {
+            $query->where('amount', '>=', $filters['min_amount']);
+            $appliedFilters[] = 'min_amount';
+        }
+
+        if (!empty($filters['max_amount'])) {
+            $query->where('amount', '<=', $filters['max_amount']);
+            $appliedFilters[] = 'max_amount';
+        }
+
+        if (!empty($filters['search'])) {
+            $query->where('description', 'like', '%' . $filters['search'] . '%');
+            $appliedFilters[] = 'search';
+        }
+
+        // Trier par date décroissante
+        $query->orderBy('transaction_date', 'desc');
+
+        // Pagination
+        $paginated = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return [
+            'data' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'last_page' => $paginated->lastPage(),
+                'from' => $paginated->firstItem(),
+                'to' => $paginated->lastItem(),
+            ],
+            'filters' => array_merge(['applied' => $appliedFilters], $filters)
+        ];
+    }
+
     public function getTransactionStats($userId)
     {
         return [
@@ -73,7 +136,7 @@ class TransactionService extends BaseService
     private function validateTransactionData(array $data): void
     {
         $rules = [
-            'user_id' => 'required|integer',
+            'user_id' => 'required|string', // UUID format
             'type' => 'required|in:transfer,payment',
             'amount' => 'required|numeric|min:100',
         ];
@@ -105,7 +168,8 @@ class TransactionService extends BaseService
         $client = \App\Models\Client::where('user_id', $userId)->first();
 
         if (!$client) {
-            throw new \InvalidArgumentException("Client non trouvé");
+            \Illuminate\Support\Facades\Log::error('Client not found for user_id', ['user_id' => $userId]);
+            throw new \InvalidArgumentException("Client non trouvé pour user_id: {$userId}");
         }
 
         $compte = $client->compte->where('status', 'actif')->first();
@@ -196,9 +260,18 @@ class TransactionService extends BaseService
             'new_balance' => $compte->fresh()->solde
         ]);
 
-        // Pour les transferts, créditer le destinataire
+        // Pour les transferts, créditer le destinataire (client)
         if ($transaction->type === 'transfer' && $transaction->recipient_phone) {
             $this->creditRecipient($transaction);
+        }
+
+        // Pour les paiements, créditer le marchand ou service
+        if ($transaction->type === 'payment') {
+            if ($transaction->merchant_id) {
+                $this->creditMerchant($transaction);
+            } elseif ($transaction->service_id) {
+                $this->creditService($transaction);
+            }
         }
     }
 
@@ -227,6 +300,54 @@ class TransactionService extends BaseService
             'recipient_phone' => $transaction->recipient_phone,
             'amount' => $transaction->amount,
             'recipient_new_balance' => $recipientCompte->fresh()->solde
+        ]);
+    }
+
+    private function creditMerchant(Transaction $transaction): void
+    {
+        // Récupérer le marchand
+        $merchant = \App\Models\OmPay\Merchant::find($transaction->merchant_id);
+
+        if (!$merchant) {
+            Log::error('Marchand non trouvé lors du crédit', ['merchant_id' => $transaction->merchant_id]);
+            return;
+        }
+
+        // Créditer le montant au marchand (utiliser update pour MongoDB)
+        $currentSolde = (float) $merchant->solde;
+        $newSolde = $currentSolde + $transaction->amount;
+        $merchant->update(['solde' => $newSolde]);
+
+        Log::info('Marchand crédité après paiement', [
+            'transaction_id' => $transaction->id,
+            'merchant_id' => $transaction->merchant_id,
+            'merchant_name' => $merchant->name,
+            'amount' => $transaction->amount,
+            'merchant_new_balance' => $newSolde
+        ]);
+    }
+
+    private function creditService(Transaction $transaction): void
+    {
+        // Récupérer le service
+        $service = \App\Models\OmPay\Service::find($transaction->service_id);
+
+        if (!$service) {
+            Log::error('Service non trouvé lors du crédit', ['service_id' => $transaction->service_id]);
+            return;
+        }
+
+        // Créditer le montant au service (utiliser update pour MongoDB)
+        $currentSolde = (float) $service->solde;
+        $newSolde = $currentSolde + $transaction->amount;
+        $service->update(['solde' => $newSolde]);
+
+        Log::info('Service crédité après paiement', [
+            'transaction_id' => $transaction->id,
+            'service_id' => $transaction->service_id,
+            'service_name' => $service->name,
+            'amount' => $transaction->amount,
+            'service_new_balance' => $newSolde
         ]);
     }
 }
