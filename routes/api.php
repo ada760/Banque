@@ -91,6 +91,30 @@ Route::get('/health', function () {
     }
 });
 
+// Debug route to check database contents (temporary)
+Route::get('/debug/data', function () {
+    try {
+        $users = \App\Models\User::select('id', 'titulaire', 'phone_number', 'email')->get();
+        $clients = \App\Models\Client::select('id', 'telephone', 'user_id')->get();
+        $comptes = \App\Models\Compte::select('id', 'num_compte', 'solde', 'client_id', 'status')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Database contents',
+            'data' => [
+                'users' => $users,
+                'clients' => $clients,
+                'comptes' => $comptes
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Swagger Documentation routes
 Route::get('/documentation', [App\Http\Controllers\SwaggerController::class, 'index']);
 Route::get('/documentation.json', [App\Http\Controllers\SwaggerController::class, 'json']);
