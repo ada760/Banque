@@ -32,12 +32,39 @@ return new class extends Migration
 
             echo "✅ Utilisateur Moustapha créé\n";
         } else {
+            // Vérifier si l'utilisateur existant a les champs requis
             $user = DB::table('users')
                 ->where('email', 'seckmoustapha238@gmail.com')
                 ->orWhere('phone_number', '772687847')
                 ->first();
+
             $userId = $user->id;
-            echo "⚠️ Utilisateur Moustapha existe déjà\n";
+
+            // Mettre à jour l'utilisateur s'il manque des champs
+            $needsUpdate = false;
+            $updateData = [];
+
+            if (empty($user->phone_number)) {
+                $updateData['phone_number'] = '772687847';
+                $needsUpdate = true;
+            }
+
+            if (empty($user->secret_code)) {
+                $updateData['secret_code'] = bcrypt('1234');
+                $needsUpdate = true;
+            }
+
+            if (empty($user->password)) {
+                $updateData['password'] = bcrypt('password');
+                $needsUpdate = true;
+            }
+
+            if ($needsUpdate) {
+                DB::table('users')->where('id', $userId)->update($updateData);
+                echo "✅ Utilisateur Moustapha mis à jour\n";
+            } else {
+                echo "⚠️ Utilisateur Moustapha existe déjà (complet)\n";
+            }
         }
 
         // Vérifier et créer le client si nécessaire
