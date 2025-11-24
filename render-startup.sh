@@ -53,8 +53,8 @@ export REDIS_CACHE_DB=${REDIS_CACHE_DB:-1}
 # Utiliser sync queue en production (pas de worker persistant sur Render)
 export QUEUE_CONNECTION=${QUEUE_CONNECTION:-sync}
 
-# Configuration Mail (Gmail SMTP)
-export MAIL_MAILER=${MAIL_MAILER:-smtp}
+# Configuration Mail (Log pour les tests - pas d'envoi réel)
+export MAIL_MAILER=${MAIL_MAILER:-log}
 export MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
 export MAIL_PORT=${MAIL_PORT:-587}
 export MAIL_USERNAME=${MAIL_USERNAME:-your-email@gmail.com}
