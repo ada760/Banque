@@ -119,6 +119,14 @@ else
     exit 1
 fi
 
+# Exécuter les seeders en production (données de test)
+echo "🌱 Exécution des seeders..."
+if php artisan db:seed --force; then
+    echo "✅ Seeders exécutés"
+else
+    echo "⚠️ Échec des seeders (continuer quand même)"
+fi
+
 # Générer les clés Passport si elles n'existent pas
 echo "🔐 Configuration Passport..."
 if [ ! -f storage/oauth-public.key ]; then
