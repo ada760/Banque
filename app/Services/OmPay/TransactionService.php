@@ -4,13 +4,11 @@ namespace App\Services\OmPay;
 
 use App\Events\OmPay\TransactionCreated;
 use App\Models\OmPay\Transaction;
-use App\Services\BaseService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class TransactionService extends BaseService
+class TransactionService
 {
-    // Repository supprimé - utilisation directe d'Eloquent
 
     public function createTransaction(array $data)
     {
