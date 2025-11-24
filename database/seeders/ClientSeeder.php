@@ -13,7 +13,7 @@ class ClientSeeder extends Seeder
      */
     public function run(): void
     {
-        // Créer un client spécifique pour les tests
+        // Créer un client spécifique pour les tests - Moustapha
         $user = \App\Models\User::factory()->create([
             'titulaire' => 'Moustapha Seck',
             'email' => 'seckmoustapha238@gmail.com',
