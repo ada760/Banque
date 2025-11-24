@@ -33,4 +33,7 @@ USER laravel
 
 EXPOSE 8000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Rendre le script exécutable et l'utiliser comme commande de démarrage
+RUN chmod +x render-startup.sh
+
+CMD ["./render-startup.sh"]
