@@ -10,9 +10,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Créer l'utilisateur de test Moustapha s'il n'existe pas
+        // Vérifier si l'utilisateur existe déjà (par email ou téléphone)
         $userExists = DB::table('users')
-            ->where('phone_number', '772687847')
+            ->where('email', 'seckmoustapha238@gmail.com')
+            ->orWhere('phone_number', '772687847')
             ->exists();
 
         if (!$userExists) {
@@ -29,7 +30,22 @@ return new class extends Migration
                 'updated_at' => now(),
             ]);
 
-            // Créer le client associé
+            echo "✅ Utilisateur Moustapha créé\n";
+        } else {
+            $user = DB::table('users')
+                ->where('email', 'seckmoustapha238@gmail.com')
+                ->orWhere('phone_number', '772687847')
+                ->first();
+            $userId = $user->id;
+            echo "⚠️ Utilisateur Moustapha existe déjà\n";
+        }
+
+        // Vérifier et créer le client si nécessaire
+        $clientExists = DB::table('clients')
+            ->where('user_id', $userId)
+            ->exists();
+
+        if (!$clientExists) {
             $clientId = (string) \Illuminate\Support\Str::uuid();
             DB::table('clients')->insert([
                 'id' => $clientId,
@@ -38,8 +54,19 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            echo "✅ Client Moustapha créé\n";
+        } else {
+            $client = DB::table('clients')->where('user_id', $userId)->first();
+            $clientId = $client->id;
+            echo "⚠️ Client Moustapha existe déjà\n";
+        }
 
-            // Créer un compte bancaire pour le client
+        // Vérifier et créer le compte si nécessaire
+        $compteExists = DB::table('comptes')
+            ->where('client_id', $clientId)
+            ->exists();
+
+        if (!$compteExists) {
             DB::table('comptes')->insert([
                 'id' => (string) \Illuminate\Support\Str::uuid(),
                 'num_compte' => 'C' . rand(100000000, 999999999),
@@ -50,11 +77,12 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-            echo "✅ Utilisateur de test Moustapha créé avec succès\n";
+            echo "✅ Compte bancaire Moustapha créé\n";
         } else {
-            echo "⚠️ Utilisateur de test Moustapha existe déjà\n";
+            echo "⚠️ Compte bancaire Moustapha existe déjà\n";
         }
+
+        echo "✅ Migration terminée avec succès\n";
     }
 
     /**
