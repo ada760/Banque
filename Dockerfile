@@ -24,6 +24,10 @@ RUN addgroup -g 1000 laravel && adduser -G laravel -g laravel -s /bin/sh -D lara
 WORKDIR /var/www/html
 COPY --from=composer-build /app /var/www/html
 
+# Copier le script de démarrage et le rendre exécutable
+COPY render-startup.sh /var/www/html/render-startup.sh
+RUN chmod +x /var/www/html/render-startup.sh
+
 RUN mkdir -p storage/framework/{cache,data,sessions,testing,views} \
     && mkdir -p storage/logs bootstrap/cache \
     && chown -R laravel:laravel /var/www/html \
@@ -33,7 +37,5 @@ USER laravel
 
 EXPOSE 8000
 
-# Rendre le script exécutable et l'utiliser comme commande de démarrage
-RUN chmod +x render-startup.sh
-
-CMD ["./render-startup.sh"]
+# Utiliser le script de démarrage comme commande
+CMD ["/var/www/html/render-startup.sh"]
