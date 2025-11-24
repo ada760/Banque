@@ -27,11 +27,14 @@ export APP_URL=${APP_URL:-https://banque-20br.onrender.com}
 
 # Configuration base de données PostgreSQL
 export DB_CONNECTION=${DB_CONNECTION:-pgsql}
-export DB_HOST=${DB_HOST:-localhost}
-export DB_PORT=${DB_PORT:-5432}
-export DB_DATABASE=${DB_DATABASE:-laravel}
-export DB_USERNAME=${DB_USERNAME:-laravel}
-export DB_PASSWORD=${DB_PASSWORD:-password}
+# Ne pas définir DB_HOST etc. si DATABASE_URL est fourni (cas de Render)
+if [ -z "$DATABASE_URL" ]; then
+    export DB_HOST=${DB_HOST:-localhost}
+    export DB_PORT=${DB_PORT:-5432}
+    export DB_DATABASE=${DB_DATABASE:-laravel}
+    export DB_USERNAME=${DB_USERNAME:-laravel}
+    export DB_PASSWORD=${DB_PASSWORD:-password}
+fi
 
 # Configuration MongoDB
 export MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017}
@@ -97,9 +100,13 @@ if [ "$CLIENT_EXISTS" = "0" ]; then
     php artisan passport:client --personal --name="Banque API Personal Access Client" --no-interaction
 fi
 
-# Générer la documentation Swagger
+# Générer la documentation Swagger (avec gestion d'erreur)
 echo "📚 Génération de la documentation Swagger..."
-php artisan l5-swagger:generate
+if php artisan l5-swagger:generate; then
+    echo "✅ Documentation Swagger générée"
+else
+    echo "⚠️ Échec génération Swagger, continuation..."
+fi
 
 # Cacher les configurations pour la production
 echo "⚡ Mise en cache des configurations..."
