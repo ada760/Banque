@@ -53,12 +53,12 @@ export REDIS_CACHE_DB=${REDIS_CACHE_DB:-1}
 # Utiliser sync queue en production (pas de worker persistant sur Render)
 export QUEUE_CONNECTION=${QUEUE_CONNECTION:-sync}
 
-# Configuration Mail (Mailgun - Plus simple pour les tests)
+# Configuration Mail (SendGrid - Production)
 export MAIL_MAILER=${MAIL_MAILER:-smtp}
-export MAIL_HOST=${MAIL_HOST:-smtp.mailgun.org}
+export MAIL_HOST=${MAIL_HOST:-smtp.sendgrid.net}
 export MAIL_PORT=${MAIL_PORT:-587}
-export MAIL_USERNAME=${MAIL_USERNAME:-postmaster@sandbox123456789.mailgun.org}
-export MAIL_PASSWORD=${MAIL_PASSWORD:-your-mailgun-password}
+export MAIL_USERNAME=${MAIL_USERNAME:-apikey}
+export MAIL_PASSWORD=${MAIL_PASSWORD:-${SENDGRID_API_KEY}}
 export MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
 export MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@banque-20br.onrender.com}
 export MAIL_FROM_NAME=${MAIL_FROM_NAME:-"Banque OM Pay"}
