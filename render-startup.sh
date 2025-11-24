@@ -36,8 +36,8 @@ if [ -z "$DATABASE_URL" ]; then
     export DB_PASSWORD=${DB_PASSWORD:-password}
 fi
 
-# Configuration MongoDB
-export MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017}
+# Configuration MongoDB (optionnel)
+export MONGODB_URI=${MONGODB_URI:-}
 export MONGODB_DATABASE=${MONGODB_DATABASE:-om_pay_db}
 
 # Configuration Redis (optionnel)
@@ -80,7 +80,12 @@ php artisan view:clear
 
 # Configuration de la base de données
 echo "🗄️ Configuration de la base de données..."
-php artisan migrate --force
+if php artisan migrate --force; then
+    echo "✅ Migrations exécutées"
+else
+    echo "❌ Échec des migrations"
+    exit 1
+fi
 
 # Générer les clés Passport si elles n'existent pas
 echo "🔐 Configuration Passport..."
