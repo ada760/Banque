@@ -53,12 +53,12 @@ export REDIS_CACHE_DB=${REDIS_CACHE_DB:-1}
 # Utiliser sync queue en production (pas de worker persistant sur Render)
 export QUEUE_CONNECTION=${QUEUE_CONNECTION:-sync}
 
-# Configuration Mail (Log pour les tests - pas d'envoi réel)
-export MAIL_MAILER=${MAIL_MAILER:-log}
-export MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
+# Configuration Mail (Production - Service Email)
+export MAIL_MAILER=${MAIL_MAILER:-smtp}
+export MAIL_HOST=${MAIL_HOST:-smtp.sendgrid.net}
 export MAIL_PORT=${MAIL_PORT:-587}
-export MAIL_USERNAME=${MAIL_USERNAME:-your-email@gmail.com}
-export MAIL_PASSWORD=${MAIL_PASSWORD:-your-app-password}
+export MAIL_USERNAME=${MAIL_USERNAME:-apikey}
+export MAIL_PASSWORD=${MAIL_PASSWORD:-your-sendgrid-api-key}
 export MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
 export MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@banque-20br.onrender.com}
 export MAIL_FROM_NAME=${MAIL_FROM_NAME:-"Banque OM Pay"}
