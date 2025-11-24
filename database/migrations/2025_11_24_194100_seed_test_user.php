@@ -16,7 +16,9 @@ return new class extends Migration
             ->exists();
 
         if (!$userExists) {
-            $userId = DB::table('users')->insertGetId([
+            $userId = (string) \Illuminate\Support\Str::uuid();
+            DB::table('users')->insert([
+                'id' => $userId,
                 'titulaire' => 'Moustapha Seck',
                 'email' => 'seckmoustapha238@gmail.com',
                 'phone_number' => '772687847',
@@ -28,6 +30,7 @@ return new class extends Migration
 
             // Créer le client associé
             DB::table('clients')->insert([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
                 'telephone' => '772687847',
                 'user_id' => $userId,
                 'created_at' => now(),
