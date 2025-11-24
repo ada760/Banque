@@ -4,36 +4,24 @@ namespace App\Services\OmPay;
 
 use App\Events\OmPay\TransactionCreated;
 use App\Models\OmPay\Transaction;
-use App\Repositories\OmPay\TransactionRepository;
 use App\Services\BaseService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TransactionService extends BaseService
 {
-    protected TransactionRepository $transactionRepository;
-
-    public function __construct(TransactionRepository $transactionRepository)
-    {
-        $this->transactionRepository = $transactionRepository;
-    }
+    // Repository supprimé - utilisation directe d'Eloquent
 
     public function createTransaction(array $data)
     {
-        // Vérifier la connexion MongoDB avant de créer
-        try {
-            DB::connection('mongodb')->getMongoClient();
-        } catch (\Exception $e) {
-            Log::error('MongoDB non disponible pour créer une transaction', ['error' => $e->getMessage()]);
-            throw new \Exception('Service de transactions temporairement indisponible. Veuillez réessayer plus tard.');
-        }
-
         // Validation des données
         $this->validateTransactionData($data);
 
+        DB::beginTransaction();
+
         try {
-            // Transaction MongoDB (pas de rollback automatique comme SQL)
-            $transaction = $this->transactionRepository->create([
+            // Créer la transaction avec transaction PostgreSQL
+            $transaction = Transaction::create([
                 'user_id' => $data['user_id'],
                 'recipient_phone' => $data['recipient_phone'] ?? null,
                 'type' => $data['type'],
@@ -51,11 +39,14 @@ class TransactionService extends BaseService
             // Déclencher l'événement
             event(new TransactionCreated($transaction));
 
-            // Simuler le traitement (dans un vrai système, cela serait asynchrone)
+            // Traiter la transaction (mise à jour du solde)
             $this->processTransaction($transaction);
+
+            DB::commit();
 
             return $transaction;
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Erreur création transaction OM Pay', [
                 'data' => $data,
                 'error' => $e->getMessage()
@@ -66,33 +57,16 @@ class TransactionService extends BaseService
 
     public function getUserTransactions($userId, $limit = 10)
     {
-        return $this->transactionRepository->getByUser($userId, $limit);
+        return Transaction::where('user_id', $userId)
+            ->orderBy('transaction_date', 'desc')
+            ->limit($limit)
+            ->get();
     }
 
     public function getFilteredTransactions($userId, array $filters = [], $perPage = 10, $page = 1)
     {
-        try {
-            // Vérifier la connexion MongoDB
-            DB::connection('mongodb')->getMongoClient();
-        } catch (\Exception $e) {
-            // MongoDB non disponible, retourner une réponse vide
-            Log::warning('MongoDB non disponible pour les transactions', ['error' => $e->getMessage()]);
-            return [
-                'data' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => $perPage,
-                    'total' => 0,
-                    'last_page' => 1,
-                    'from' => null,
-                    'to' => null,
-                ],
-                'filters' => array_merge(['applied' => []], $filters)
-            ];
-        }
-
         // Construire la requête de base
-        $query = \App\Models\OmPay\Transaction::where('user_id', $userId);
+        $query = Transaction::where('user_id', $userId);
 
         // Appliquer les filtres
         $appliedFilters = [];
@@ -154,34 +128,14 @@ class TransactionService extends BaseService
 
     public function getTransactionStats($userId)
     {
-        try {
-            // Vérifier la connexion MongoDB
-            DB::connection('mongodb')->getMongoClient();
-        } catch (\Exception $e) {
-            // MongoDB non disponible, retourner des stats vides
-            Log::warning('MongoDB non disponible pour les statistiques', ['error' => $e->getMessage()]);
-            return [
-                'total_transactions' => 0,
-                'total_amount' => 0,
-                'successful_transactions' => 0,
-                'failed_transactions' => 0,
-                'pending_transactions' => 0,
-                'average_transaction' => 0,
-                'monthly_stats' => [
-                    'current_month' => [
-                        'count' => 0,
-                        'amount' => 0
-                    ]
-                ]
-            ];
-        }
+        $transactions = Transaction::where('user_id', $userId);
 
         return [
-            'total_transactions' => $this->transactionRepository->getByUser($userId)->count(),
-            'total_amount' => $this->transactionRepository->getTotalAmountByUser($userId),
-            'successful_transactions' => $this->transactionRepository->getByUser($userId)->where('status', 'success')->count(),
-            'failed_transactions' => $this->transactionRepository->getByUser($userId)->where('status', 'failed')->count(),
-            'pending_transactions' => $this->transactionRepository->getByUser($userId)->where('status', 'pending')->count(),
+            'total_transactions' => $transactions->count(),
+            'total_amount' => $transactions->sum('amount'),
+            'successful_transactions' => (clone $transactions)->where('status', 'success')->count(),
+            'failed_transactions' => (clone $transactions)->where('status', 'failed')->count(),
+            'pending_transactions' => (clone $transactions)->where('status', 'pending')->count(),
             'average_transaction' => $this->calculateAverageTransaction($userId),
             'monthly_stats' => $this->getMonthlyStats($userId),
         ];
@@ -189,7 +143,7 @@ class TransactionService extends BaseService
 
     private function calculateAverageTransaction($userId)
     {
-        $transactions = $this->transactionRepository->getByUser($userId);
+        $transactions = Transaction::where('user_id', $userId)->get();
         $count = $transactions->count();
         return $count > 0 ? $transactions->sum('amount') / $count : 0;
     }
@@ -199,11 +153,10 @@ class TransactionService extends BaseService
         $currentMonth = now()->month;
         $currentYear = now()->year;
 
-        $monthlyTransactions = $this->transactionRepository->getByUser($userId)
-            ->filter(function ($transaction) use ($currentMonth, $currentYear) {
-                $transactionDate = \Carbon\Carbon::parse($transaction->transaction_date);
-                return $transactionDate->month === $currentMonth && $transactionDate->year === $currentYear;
-            });
+        $monthlyTransactions = Transaction::where('user_id', $userId)
+            ->whereYear('transaction_date', $currentYear)
+            ->whereMonth('transaction_date', $currentMonth)
+            ->get();
 
         return [
             'current_month' => [
@@ -346,12 +299,13 @@ class TransactionService extends BaseService
         }
 
         // Pour les paiements, créditer le marchand ou service
+        // TODO: Implémenter une fois les modèles Merchant/Service créés en PostgreSQL
         if ($transaction->type === 'payment') {
-            if ($transaction->merchant_id) {
-                $this->creditMerchant($transaction);
-            } elseif ($transaction->service_id) {
-                $this->creditService($transaction);
-            }
+            Log::info('Paiement effectué - Crédit marchand/service à implémenter', [
+                'transaction_id' => $transaction->id,
+                'merchant_id' => $transaction->merchant_id,
+                'service_id' => $transaction->service_id,
+            ]);
         }
     }
 
@@ -383,51 +337,4 @@ class TransactionService extends BaseService
         ]);
     }
 
-    private function creditMerchant(Transaction $transaction): void
-    {
-        // Récupérer le marchand
-        $merchant = \App\Models\OmPay\Merchant::find($transaction->merchant_id);
-
-        if (!$merchant) {
-            Log::error('Marchand non trouvé lors du crédit', ['merchant_id' => $transaction->merchant_id]);
-            return;
-        }
-
-        // Créditer le montant au marchand (utiliser update pour MongoDB)
-        $currentSolde = (float) $merchant->solde;
-        $newSolde = $currentSolde + $transaction->amount;
-        $merchant->update(['solde' => $newSolde]);
-
-        Log::info('Marchand crédité après paiement', [
-            'transaction_id' => $transaction->id,
-            'merchant_id' => $transaction->merchant_id,
-            'merchant_name' => $merchant->name,
-            'amount' => $transaction->amount,
-            'merchant_new_balance' => $newSolde
-        ]);
-    }
-
-    private function creditService(Transaction $transaction): void
-    {
-        // Récupérer le service
-        $service = \App\Models\OmPay\Service::find($transaction->service_id);
-
-        if (!$service) {
-            Log::error('Service non trouvé lors du crédit', ['service_id' => $transaction->service_id]);
-            return;
-        }
-
-        // Créditer le montant au service (utiliser update pour MongoDB)
-        $currentSolde = (float) $service->solde;
-        $newSolde = $currentSolde + $transaction->amount;
-        $service->update(['solde' => $newSolde]);
-
-        Log::info('Service crédité après paiement', [
-            'transaction_id' => $transaction->id,
-            'service_id' => $transaction->service_id,
-            'service_name' => $service->name,
-            'amount' => $transaction->amount,
-            'service_new_balance' => $newSolde
-        ]);
-    }
 }

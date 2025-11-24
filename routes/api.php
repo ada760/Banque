@@ -60,21 +60,6 @@ Route::middleware(['auth:api'])->prefix('clients')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\ClientController::class, 'dashboard']);
 });
 
-// Test route for MongoDB connection
-Route::get('/test-mongo', function () {
-    try {
-        $transaction = \App\Models\OmPay\Transaction::create([
-            'user_id' => 1,
-            'type' => 'payment',
-            'amount' => 100,
-            'status' => 'success',
-            'transaction_date' => now(),
-        ]);
-        return response()->json(['success' => true, 'message' => 'MongoDB connection works', 'data' => $transaction]);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'error' => $e->getMessage()]);
-    }
-});
 
 // Swagger Documentation routes
 Route::get('/documentation', [App\Http\Controllers\SwaggerController::class, 'index']);

@@ -2,25 +2,24 @@
 
 namespace App\Models\OmPay;
 
-use MongoDB\Laravel\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
-    use SoftDeletes;
-
-    protected $connection = 'mongodb';
-    protected $collection = 'transactions';
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'user_id', // Référence vers User PostgreSQL
         'recipient_phone',
-        'type', // transfer, payment, recharge
+        'type', // transfer, payment
         'amount',
         'status', // pending, success, failed
         'reference', // Pour factures
-        'merchant_id', // ObjectId MongoDB
-        'service_id', // ObjectId MongoDB
+        'merchant_id', // ID du marchand
+        'service_id', // ID du service
         'qr_metadata', // Objet JSON pour métadonnées QR
         'fee',
         'description',
@@ -35,6 +34,11 @@ class Transaction extends Model
     ];
 
     // Relations
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
+
     public function merchant()
     {
         return $this->belongsTo(Merchant::class);

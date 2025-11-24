@@ -12,7 +12,6 @@
         "laravel/passport": "^12.4",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
-        "mongodb/laravel-mongodb": "^5.5",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "swagger-api/swagger-ui": "^5.30"
     },
