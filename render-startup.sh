@@ -50,8 +50,8 @@ export REDIS_PASSWORD=${REDIS_PASSWORD:-}
 export REDIS_PORT=${REDIS_PORT:-6379}
 export REDIS_DB=${REDIS_DB:-0}
 export REDIS_CACHE_DB=${REDIS_CACHE_DB:-1}
-# Utiliser database queue si Redis non disponible
-export QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
+# Utiliser sync queue en production (pas de worker persistant sur Render)
+export QUEUE_CONNECTION=${QUEUE_CONNECTION:-sync}
 
 # Configuration Mail (Gmail SMTP)
 export MAIL_MAILER=${MAIL_MAILER:-smtp}
