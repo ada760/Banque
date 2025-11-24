@@ -30,10 +30,23 @@ return new class extends Migration
             ]);
 
             // Créer le client associé
+            $clientId = (string) \Illuminate\Support\Str::uuid();
             DB::table('clients')->insert([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'id' => $clientId,
                 'telephone' => '772687847',
                 'user_id' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Créer un compte bancaire pour le client
+            DB::table('comptes')->insert([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'num_compte' => 'C' . rand(100000000, 999999999),
+                'client_id' => $clientId,
+                'solde' => 100000.00, // Solde initial
+                'devise' => 'XOF',
+                'status' => 'actif',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
