@@ -52,24 +52,17 @@ class OtpService
             'otp_attempts' => 0 // Reset attempts
         ]);
 
-        // Envoyer l'OTP par email (toujours, même en développement pour les tests)
+        // Envoyer l'OTP par email (MOCK - log seulement)
         $this->sendOtpEmailSync($user->email, $otp);
 
-        Log::info('OTP demandé', [
+        Log::info('OTP demandé (MOCK)', [
             'phone' => $phone,
             'user_id' => $user->id,
-            'otp' => $otp // Pour debug/tests seulement
-        ]);
-
-        // Log supplémentaire pour développement
-        Log::warning('OTP POUR TESTS - Vérifiez les logs', [
-            'email' => $user->email,
-            'otp' => $otp,
-            'message' => 'Utilisez cet OTP pour les tests'
+            'email' => $user->email
         ]);
 
         return [
-            'message' => 'Code OTP envoyé par email',
+            'message' => 'Code OTP généré - Vérifiez les logs pour le code',
             'expires_in' => self::OTP_TTL
         ];
     }
@@ -219,34 +212,23 @@ class OtpService
     }
 
     /**
-     * Envoie l'OTP par email (synchrone)
+     * Envoie l'OTP par email (synchrone) - MOCK pour les tests
      */
     private function sendOtpEmailSync(string $email, string $otp): void
     {
-        try {
-            // Utiliser le facade Mail directement
-            Mail::raw("Votre code de vérification OM Pay est : {$otp}. Ce code expire dans 6 minutes.", function ($message) use ($email) {
-                $message->to($email)
-                        ->subject('Code de vérification OM Pay');
-            });
+        // MOCK: Ne pas envoyer d'email réel, juste logger l'OTP
+        Log::warning('🎯 OTP POUR TESTS - CODE À UTILISER', [
+            'email' => $email,
+            'otp_code' => $otp,
+            'message' => 'UTILISEZ CE CODE POUR LES TESTS',
+            'instructions' => 'Copiez ce code OTP pour tester la vérification'
+        ]);
 
-            Log::info('Email OTP envoyé (sync)', ['email' => $email]);
-        } catch (\Exception $e) {
-            Log::error('Erreur envoi email OTP (sync)', [
-                'email' => $email,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+        // Simuler un envoi réussi
+        Log::info('Mock email OTP envoyé (sync)', ['email' => $email]);
 
-            // En cas d'erreur d'email, logger l'OTP pour les tests (temporaire)
-            Log::warning('OTP TEMPORAIRE - Vérifiez les logs', [
-                'email' => $email,
-                'otp' => $otp,
-                'message' => 'Erreur email - OTP dans les logs'
-            ]);
-
-            throw new \Exception('Erreur lors de l\'envoi du code par email');
-        }
+        // Ne pas lever d'exception pour permettre les tests
+        return;
     }
 
     /**
