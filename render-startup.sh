@@ -15,10 +15,14 @@ else
     echo "✅ APP_KEY déjà définie: ${APP_KEY:0:10}..."
 fi
 
-# Forcer la génération d'une nouvelle APP_KEY à chaque démarrage
-echo "🔄 Forçage génération nouvelle APP_KEY..."
-export APP_KEY="base64:$(openssl rand -base64 32)"
-echo "✅ Nouvelle APP_KEY générée: ${APP_KEY:0:15}..."
+# Générer APP_KEY seulement si elle n'est pas définie
+if [ -z "$APP_KEY" ]; then
+    echo "🔄 Génération APP_KEY..."
+    export APP_KEY="base64:$(openssl rand -base64 32)"
+    echo "✅ APP_KEY générée: ${APP_KEY:0:15}..."
+else
+    echo "✅ APP_KEY déjà définie"
+fi
 
 # Variables d'environnement essentielles pour la production
 export APP_ENV=${APP_ENV:-production}
@@ -78,8 +82,20 @@ php artisan cache:clear
 php artisan route:clear
 php artisan view:clear
 
+# Supprimer les caches compilés
+rm -f bootstrap/cache/*.php
+rm -f storage/framework/cache/data/*.php
+
 # Configuration de la base de données
 echo "🗄️ Configuration de la base de données..."
+echo "🔍 Test connexion base de données..."
+if php artisan tinker --execute="echo 'Connexion DB OK';" 2>/dev/null; then
+    echo "✅ Connexion base de données réussie"
+else
+    echo "❌ Échec connexion base de données"
+    exit 1
+fi
+
 if php artisan migrate --force; then
     echo "✅ Migrations exécutées"
 else
