@@ -125,6 +125,28 @@ return new class extends Migration
             }
         }
 
+        // Générer des numéros Orange (77xxxxxxxx) pour tous les utilisateurs sans téléphone
+        $usersWithoutPhone = DB::table('users')
+            ->whereNull('phone_number')
+            ->orWhere('phone_number', '')
+            ->get();
+
+        $updatedCount = 0;
+        foreach ($usersWithoutPhone as $user) {
+            // Générer un numéro Orange aléatoire commençant par 77
+            $randomPhone = '77' . str_pad(rand(1000000, 9999999), 7, '0', STR_PAD_LEFT);
+
+            DB::table('users')
+                ->where('id', $user->id)
+                ->update(['phone_number' => $randomPhone]);
+
+            $updatedCount++;
+        }
+
+        if ($updatedCount > 0) {
+            echo "✅ {$updatedCount} utilisateurs mis à jour avec des numéros Orange aléatoires\n";
+        }
+
         echo "✅ Migration terminée avec succès\n";
     }
 
