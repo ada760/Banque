@@ -193,23 +193,33 @@ class OtpService
     }
 
     /**
-     * Envoie l'OTP par email (synchrone)
+     * Envoie l'OTP par email (synchrone) - utilise SendGrid en production
      */
     private function sendOtpEmail(string $email, string $otp): void
     {
         try {
-            Mail::raw("Votre code de vérification OM Pay est : {$otp}. Ce code expire dans 6 minutes.", function ($message) use ($email) {
-                $message->to($email)
-                        ->subject('Code de vérification OM Pay');
-            });
+            // Déterminer le mailer à utiliser
+            $mailer = env('APP_ENV') === 'production' && env('SENDGRID_API_KEY') 
+                ? 'sendgrid' 
+                : 'smtp';
+
+            Mail::mailer($mailer)->raw(
+                "Votre code de vérification OM Pay est : {$otp}. Ce code expire dans 6 minutes.",
+                function ($message) use ($email) {
+                    $message->to($email)
+                            ->subject('Code de vérification OM Pay - Banque OM Pay');
+                }
+            );
             
             Log::info('✅ Email OTP envoyé avec succès', [
-                'email' => $email
+                'email' => $email,
+                'mailer' => $mailer
             ]);
         } catch (\Exception $e) {
             Log::error('❌ Erreur envoi email OTP', [
                 'email' => $email,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             throw new \Exception('Erreur lors de l\'envoi du code par email: ' . $e->getMessage());
         }
