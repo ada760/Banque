@@ -52,7 +52,7 @@ class OtpService
             'otp_attempts' => 0 // Reset attempts
         ]);
 
-        // Envoyer l'OTP par email (RÉEL - synchrone)
+        // Envoyer l'OTP par email
         $this->sendOtpEmail($user->email, $otp);
 
         Log::info('OTP demandé avec succès', [
@@ -62,7 +62,7 @@ class OtpService
         ]);
 
         return [
-            'message' => 'Code OTP généré - Vérifiez les logs pour le code',
+            'message' => 'Code OTP envoyé par email',
             'expires_in' => self::OTP_TTL
         ];
     }
@@ -193,33 +193,26 @@ class OtpService
     }
 
     /**
-     * Envoie l'OTP par email (synchrone) - utilise SendGrid en production
+     * Envoie l'OTP par email
      */
     private function sendOtpEmail(string $email, string $otp): void
     {
         try {
-            // Déterminer le mailer à utiliser
-            $mailer = env('APP_ENV') === 'production' && env('SENDGRID_API_KEY') 
-                ? 'sendgrid' 
-                : 'smtp';
-
-            Mail::mailer($mailer)->raw(
-                "Votre code de vérification OM Pay est : {$otp}. Ce code expire dans 6 minutes.",
+            Mail::raw(
+                "Votre code de vérification OM Pay est : {$otp}\n\nCe code expire dans 6 minutes.",
                 function ($message) use ($email) {
                     $message->to($email)
-                            ->subject('Code de vérification OM Pay - Banque OM Pay');
+                            ->subject('Code de vérification OM Pay');
                 }
             );
             
             Log::info('✅ Email OTP envoyé avec succès', [
-                'email' => $email,
-                'mailer' => $mailer
+                'email' => $email
             ]);
         } catch (\Exception $e) {
             Log::error('❌ Erreur envoi email OTP', [
                 'email' => $email,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
             throw new \Exception('Erreur lors de l\'envoi du code par email: ' . $e->getMessage());
         }
