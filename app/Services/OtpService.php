@@ -52,10 +52,10 @@ class OtpService
             'otp_attempts' => 0 // Reset attempts
         ]);
 
-        // Envoyer l'OTP par email (MOCK - log seulement)
-        $this->sendOtpEmailSync($user->email, $otp);
+        // Envoyer l'OTP par email (RÉEL - synchrone)
+        $this->sendOtpEmail($user->email, $otp);
 
-        Log::info('OTP demandé (MOCK)', [
+        Log::info('OTP demandé avec succès', [
             'phone' => $phone,
             'user_id' => $user->id,
             'email' => $user->email
@@ -193,7 +193,7 @@ class OtpService
     }
 
     /**
-     * Envoie l'OTP par email (asynchrone avec queue)
+     * Envoie l'OTP par email (synchrone)
      */
     private function sendOtpEmail(string $email, string $otp): void
     {
@@ -202,33 +202,17 @@ class OtpService
                 $message->to($email)
                         ->subject('Code de vérification OM Pay');
             });
+            
+            Log::info('✅ Email OTP envoyé avec succès', [
+                'email' => $email
+            ]);
         } catch (\Exception $e) {
-            Log::error('Erreur envoi email OTP', [
+            Log::error('❌ Erreur envoi email OTP', [
                 'email' => $email,
                 'error' => $e->getMessage()
             ]);
-            throw new \Exception('Erreur lors de l\'envoi du code par email');
+            throw new \Exception('Erreur lors de l\'envoi du code par email: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Envoie l'OTP par email (synchrone) - MOCK pour les tests
-     */
-    private function sendOtpEmailSync(string $email, string $otp): void
-    {
-        // MOCK: Ne pas envoyer d'email réel, juste logger l'OTP
-        Log::warning('🎯 OTP POUR TESTS - CODE À UTILISER', [
-            'email' => $email,
-            'otp_code' => $otp,
-            'message' => 'UTILISEZ CE CODE POUR LES TESTS',
-            'instructions' => 'Copiez ce code OTP pour tester la vérification'
-        ]);
-
-        // Simuler un envoi réussi
-        Log::info('Mock email OTP envoyé (sync)', ['email' => $email]);
-
-        // Ne pas lever d'exception pour permettre les tests
-        return;
     }
 
     /**
