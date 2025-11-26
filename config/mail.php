@@ -83,6 +83,10 @@ return [
             'transport' => 'sendgrid',
         ],
 
+        'resend' => [
+            'transport' => 'resend',
+        ],
+
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
